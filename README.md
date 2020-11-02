@@ -1,2 +1,2 @@
-# cvrp
+# CVRP README
 CSCI 4560 Term Project
