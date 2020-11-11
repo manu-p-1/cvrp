@@ -97,6 +97,10 @@ class House:
 
 class Vehicle:
     def __init__(self, capacity: int):
+        """
+        Creates a new Vehicle object - all vehicles in this problem should be homogeneous
+        :param capacity: The capacity this vehicle can handle
+        """
         self._capacity = capacity
 
     @property
