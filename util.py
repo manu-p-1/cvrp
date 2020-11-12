@@ -1,20 +1,17 @@
 import math
+from abc import ABC
 
 
-class House:
+class Building(ABC):
 
-    def __init__(self, ident: int, x: int, y: int, num_packages: int):
+    def __init__(self, x: int, y: int):
         """
         Creates a new House object with the parameters
-        :param ident: The identity of this house - a unique number
         :param x: The x-coordinate this house sits on
         :param y: The y-coordinate this house sits on
-        :param num_packages: The number of packages this house has
         """
         self._x = x
         self._y = y
-        self._num_packages = num_packages
-        self._ident = ident
 
     @property
     def x(self) -> int:
@@ -49,6 +46,27 @@ class House:
         :return: None
         """
         self._y = y
+
+    @staticmethod
+    def distance(house1: 'Building', house2: 'Building'):
+        return math.sqrt((house1.x - house2.x) ** 2 + (house1.y - house2.y) ** 2)
+
+
+class House(Building):
+
+    def __init__(self, ident: int, x: int, y: int, num_packages: int):
+        """
+        Creates a new House object with the parameters
+        :param ident: The identity of this house - a unique number
+        :param x: The x-coordinate this house sits on
+        :param y: The y-coordinate this house sits on
+        :param num_packages: The number of packages this house has
+        """
+        super().__init__(x, y)
+        self._x = x
+        self._y = y
+        self._num_packages = num_packages
+        self._ident = ident
 
     @property
     def num_packages(self) -> int:
@@ -90,9 +108,13 @@ class House:
     def __repr__(self):
         return f"util.House(ident: {self.ident}, x: {self.x}, y: {self.y}, num_packages: {self.num_packages})"
 
-    @staticmethod
-    def distance(house1: 'House', house2: 'House'):
-        return math.sqrt((house1.x - house2.x) ** 2 + (house1.y - house2.y) ** 2)
+
+class Depot(Building):
+    def __init__(self):
+        """
+        Creates a new Depot with x, y coordinates (0, 0)
+        """
+        super().__init__(0, 0)
 
 
 class Vehicle:
