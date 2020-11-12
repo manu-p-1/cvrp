@@ -1,3 +1,9 @@
+"""
+util.py
+
+Contains classes and function that act as utilities for the main cvrp problem in cvrp.py
+"""
+
 import math
 from abc import ABC
 
@@ -6,7 +12,7 @@ class Building(ABC):
 
     def __init__(self, x: int, y: int):
         """
-        Creates a new House object with the parameters
+        Creates a new Building abstract class instance with the parameters
         :param x: The x-coordinate this house sits on
         :param y: The y-coordinate this house sits on
         """

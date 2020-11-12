@@ -2,7 +2,7 @@ import random
 from deap import creator, base, tools
 from util import House, Depot, populate_from_file
 
-MAX_CAP = 20
+MAX_CAPACITY = 20
 depot = Depot()
 
 houses = populate_from_file("houses.txt")
@@ -31,13 +31,13 @@ def eval_cvrp(individual):
         if route_counter not in routes:
             routes[route_counter] = []
 
-        if current_weight + house.num_packages > MAX_CAP:
+        if current_weight + house.num_packages > MAX_CAPACITY:
             route_counter += 1
             current_weight = 0
         routes[route_counter].append(house)
         current_weight += house.num_packages
 
-    for route_number, route in routes.items():
+    for _, route in routes.items():
         for i in range(len(route) - 1):
             h1, h2 = route[i], route[i + 1]
             distance += House.distance(h1, h2)
