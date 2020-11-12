@@ -1,7 +1,5 @@
 import random
-
 from deap import creator, base, tools
-
 from util import House, Depot, populate_from_file
 
 MAX_CAP = 20
@@ -29,7 +27,6 @@ def eval_cvrp(individual):
     distance = 0
 
     for x in individual:
-
         house = houses[x]
         if route_counter not in routes:
             routes[route_counter] = []
@@ -48,7 +45,8 @@ def eval_cvrp(individual):
 
         distance += House.distance(route[len(route) - 1], depot)
     return distance,
-    
+
+
 toolbox.register("evaluate", eval_cvrp)
 toolbox.register("mate", tools.cxBlend, alpha=0.5)
 toolbox.register("mutate", tools.mutGaussian, indpb=0.1, mu=0, sigma=1)
