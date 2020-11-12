@@ -21,8 +21,8 @@ toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
 
 def eval_cvrp(individual):
-    current_weight = 0
     routes = {}
+    current_weight = 0
     route_counter = 1
     distance = 0
 
@@ -36,14 +36,13 @@ def eval_cvrp(individual):
             current_weight = 0
         routes[route_counter].append(house)
         current_weight += house.num_packages
-    
-    for route_number, route in routes.items():
-        for i in range(0, len(route) - 1):
-            h1 = route[i]
-            h2 = route[i + 1]
-            distance += House.distance(h1, h2)
 
+    for route_number, route in routes.items():
+        for i in range(len(route) - 1):
+            h1, h2 = route[i], route[i + 1]
+            distance += House.distance(h1, h2)
         distance += House.distance(route[len(route) - 1], depot)
+
     return distance,
 
 
