@@ -1,8 +1,6 @@
 import random
 from typing import Dict
-
 from deap import creator, base, tools
-
 from util import House, Depot, populate_from_file
 
 
@@ -52,13 +50,11 @@ creator.create("Individual", list, fitness=creator.FitnessMin)
 
 # Specifies the representation of the individual and its inclusion into the population
 toolbox = base.Toolbox()
-
 toolbox.register("indices", random.sample, range(len(houses)), len(houses))
 toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.indices)
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
 cvrp = CVRP()
-
 toolbox.register("evaluate", cvrp.eval_cvrp)
 toolbox.register("mate", tools.cxBlend, alpha=0.5)
 toolbox.register("mutate", tools.mutGaussian, indpb=0.1, mu=0, sigma=1)
