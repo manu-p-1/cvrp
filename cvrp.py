@@ -9,19 +9,17 @@ from util import Building, populate_from_file
 class CVRP:
     MAX_CAPACITY = 20
 
-    def __init__(self, variables: int,
+    def __init__(self, building_lst: List[list],
                  optimal_fitness: Union[int, None],
-                 building_lst: List[list],
                  selection_size: int,
                  population_size: int,
                  ngen: int,
                  mutpb: float,
                  cxpb: float,
-                 maximize_fitness: bool):
+                 maximize_fitness: bool = False):
 
         self.pop = [random.sample(building_lst, len(building_lst)) for _ in range(population_size)]
         self.selection_size = selection_size
-        self.variables = variables
         self.optimal_fitness = optimal_fitness
         self.population_size = population_size
         self.ngen = ngen
@@ -239,7 +237,7 @@ class CVRP:
             "name": type(self).__name__,
             "best_individual": self.partition_routes(individual),
             "best_individual_fitness": self.calc_fitness(individual),
-            "variables": self.variables,
+            "variables": len(individual),
             "population_size": self.population_size,
             "selection_size": self.selection_size,
             "generations": self.ngen,
@@ -251,15 +249,13 @@ class CVRP:
 
 if __name__ == '__main__':
     buildings = populate_from_file("buildings.txt")
-    cvrp = CVRP(variables=len(buildings),
+    cvrp = CVRP(building_lst=buildings,
                 optimal_fitness=None,
-                building_lst=buildings,
                 selection_size=5,
                 population_size=10,
                 ngen=100,
                 mutpb=1,
-                cxpb=1,
-                maximize_fitness=False)
+                cxpb=1)
 
     result = cvrp.run()
-    print(json.dumps(result, default=lambda o: o.__dict__, indent=4))
+    print(json.dumps(result, default=lambda o: o.__dict__, indent=2))
