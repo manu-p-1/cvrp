@@ -3,21 +3,23 @@ util.py
 
 Contains classes and function that act as utilities for the main cvrp problem in cvrp.py
 """
-
 import math
-from abc import ABC
 
 
-class Building(ABC):
+class Building:
 
-    def __init__(self, x: int, y: int):
+    def __init__(self, ident: int, x: int, y: int, num_packages: int):
         """
-        Creates a new Building abstract class instance with the parameters
+        Creates a new House object with the parameters
+        :param ident: The identity of this house - a unique number
         :param x: The x-coordinate this house sits on
         :param y: The y-coordinate this house sits on
+        :param num_packages: The number of packages this house has
         """
         self._x = x
         self._y = y
+        self._num_packages = num_packages
+        self._ident = ident
 
     @property
     def x(self) -> int:
@@ -53,27 +55,6 @@ class Building(ABC):
         """
         self._y = y
 
-    @staticmethod
-    def distance(house1: 'Building', house2: 'Building'):
-        return math.sqrt((house1.x - house2.x) ** 2 + (house1.y - house2.y) ** 2)
-
-
-class House(Building):
-
-    def __init__(self, ident: int, x: int, y: int, num_packages: int):
-        """
-        Creates a new House object with the parameters
-        :param ident: The identity of this house - a unique number
-        :param x: The x-coordinate this house sits on
-        :param y: The y-coordinate this house sits on
-        :param num_packages: The number of packages this house has
-        """
-        super().__init__(x, y)
-        self._x = x
-        self._y = y
-        self._num_packages = num_packages
-        self._ident = ident
-
     @property
     def num_packages(self) -> int:
         """
@@ -108,19 +89,15 @@ class House(Building):
         """
         self._ident = ident
 
+    @staticmethod
+    def distance(house1: 'Building', house2: 'Building'):
+        return math.sqrt((house1.x - house2.x) ** 2 + (house1.y - house2.y) ** 2)
+
     def __str__(self):
         return f"Identity: {self.ident}\nx: {self.x}\ny: {self.y}\nnum_packages: {self.num_packages}"
 
     def __repr__(self):
         return f"util.House(ident: {self.ident}, x: {self.x}, y: {self.y}, num_packages: {self.num_packages})"
-
-
-class Depot(Building):
-    def __init__(self):
-        """
-        Creates a new Depot with x, y coordinates (0, 0)
-        """
-        super().__init__(0, 0)
 
 
 class Vehicle:
@@ -155,6 +132,6 @@ def populate_from_file(filename: str):
     with open(filename, "r") as f:
         for line in f:
             spt = [int(x) for x in line.split()]
-            h = House(spt[0], spt[1], spt[2], spt[3])
+            h = Building(spt[0], spt[1], spt[2], spt[3])
             ll.append(h)
     return ll
