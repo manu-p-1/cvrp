@@ -4,11 +4,12 @@ util.py
 Contains classes and function that act as utilities for the main cvrp problem in cvrp.py
 """
 import math
+from typing import Union
 
 
 class Building:
 
-    def __init__(self, ident: int, x: int, y: int, num_packages: int):
+    def __init__(self, ident: Union[str, int], x: int, y: int, num_packages: int):
         """
         Creates a new House object with the parameters
         :param ident: The identity of this house - a unique number
