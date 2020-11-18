@@ -3,7 +3,6 @@ import random
 import random as r
 import time
 from typing import Dict, List, Tuple, Union
-
 from util import Building, populate_from_file
 
 
@@ -30,7 +29,7 @@ class CVRP:
         self.cxpb = cxpb
         self.maximize_fitness = maximize_fitness
 
-        self.depot = Building(999, 0, 0, 0)
+        self.depot = Building("DEPOT", 0, 0, 0)
 
     def calc_fitness(self, individual):
         distance = 0
@@ -190,7 +189,7 @@ class CVRP:
 
     def run(self) -> dict:
         """
-        Runs the PermutationEA in the following stages:
+        Runs the CVRP in the following stages:
         1.) Parent Selection
         2.) Parent Recombination/Crossover
         3.) Child Mutation
