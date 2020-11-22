@@ -9,7 +9,7 @@ from typing import Union
 
 class Building:
 
-    def __init__(self, ident: Union[str, int], x: int, y: int, num_packages: int):
+    def __init__(self, ident: Union[str, int], x: float, y: float, num_packages: int):
         """
         Creates a new House object with the parameters
         :param ident: The identity of this house - a unique number
@@ -23,7 +23,7 @@ class Building:
         self._ident = ident
 
     @property
-    def x(self) -> int:
+    def x(self) -> float:
         """
         A getter function to return the x-coordinate of this house
         :return: The x-coordinate of this house
@@ -31,7 +31,7 @@ class Building:
         return self._x
 
     @x.setter
-    def x(self, x: int) -> None:
+    def x(self, x: float) -> None:
         """
         A setter function to set the x-coordinate for this house
         :param x: Sets the x-coordinate for this house
@@ -40,7 +40,7 @@ class Building:
         self._x = x
 
     @property
-    def y(self) -> int:
+    def y(self) -> float:
         """
         A getter function to return the y-coordinate of this house
         :return: The y-coordinate of this house
@@ -48,7 +48,7 @@ class Building:
         return self._y
 
     @y.setter
-    def y(self, y: int) -> None:
+    def y(self, y: float) -> None:
         """
         A setter function to set the y-coordinate for this house
         :param y: Sets the y-coordinate for this house
@@ -132,7 +132,7 @@ def populate_from_file(filename: str):
     ll = []
     with open(filename, "r") as f:
         for line in f:
-            spt = [int(x) for x in line.split()]
-            h = Building(spt[0], spt[1], spt[2], spt[3])
+            ident, x, y, num_packages = line.split()
+            h = Building(int(ident), float(x), float(y), int(num_packages))
             ll.append(h)
     return ll
