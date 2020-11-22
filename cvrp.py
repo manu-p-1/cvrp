@@ -7,27 +7,26 @@ from util import Building, populate_from_file
 
 
 class CVRP:
-    MAX_CAPACITY = 20
+    MAX_CAPACITY = 2010
 
     def __init__(self, building_lst: List[list],
                  optimal_fitness: Union[int, None],
                  selection_size: int,
-                 population_size: int,
                  ngen: int,
                  mutpb: float,
                  cxpb: float,
                  maximize_fitness: bool = False):
 
-        self.pop = [random.sample(building_lst, len(building_lst)) for _ in range(population_size)]
+        var_len = len(building_lst)
+        self.pop = [random.sample(building_lst, var_len) for _ in range(var_len)]
         self.selection_size = selection_size
         self.optimal_fitness = optimal_fitness
-        self.population_size = population_size
         self.ngen = ngen
         self.mutpb = mutpb
         self.cxpb = cxpb
         self.maximize_fitness = maximize_fitness
 
-        self.depot = Building("DEPOT", 0, 0, 0)
+        self.depot = Building("DEPOT", 1, -1, 0)
 
     def calc_fitness(self, individual):
         distance = 0
@@ -128,7 +127,7 @@ class CVRP:
         return CVRP.de_partition_routes(child)
 
     @classmethod
-    def mutate(cls, child: list) -> list:
+    def inversion_mutation(cls, child: list) -> list:
         """
         Mutates a child's genes by choosing two random indices between 0 and len(chromosome) - 1. From a programming
         perspective, two indices are chosen: one between 0 and the list midpoint and one between the midpoint and the
@@ -207,7 +206,7 @@ class CVRP:
 
             parent1, parent2 = self.select()
             child1 = CVRP.optimized_cx(parent1, parent2) if cx_prob else parent1
-            child1 = CVRP.mutate(child1) if mut_prob else child1
+            child1 = CVRP.inversion_mutation(child1) if mut_prob else child1
             child1_fit = self.calc_fitness(child1)
 
             if self.optimal_fitness is not None:
@@ -233,17 +232,18 @@ class CVRP:
         :param comp_time: The computation time of the algorithm
         :return: A dictionary with the information
         """
+        partitioned = self.partition_routes(individual)
         return {
             "name": type(self).__name__,
-            "best_individual": self.partition_routes(individual),
+            "time": f"{comp_time} seconds",
+            "best_individual": partitioned,
             "best_individual_fitness": self.calc_fitness(individual),
-            "variables": len(individual),
-            "population_size": self.population_size,
+            "vehicles": len(partitioned.keys()),
+            "dimension": len(individual),
             "selection_size": self.selection_size,
             "generations": self.ngen,
             "mutpb": self.mutpb,
             "cxpb": self.cxpb,
-            "time": f"{comp_time} seconds"
         }
 
 
@@ -252,10 +252,11 @@ if __name__ == '__main__':
     cvrp = CVRP(building_lst=buildings,
                 optimal_fitness=None,
                 selection_size=5,
-                population_size=10,
-                ngen=100,
-                mutpb=1,
-                cxpb=1)
+                ngen=5000,
+                mutpb=0.5,
+                cxpb=0.75)
 
     result = cvrp.run()
-    print(json.dumps(result, default=lambda o: o.__dict__, indent=2))
+    print(json.dumps(obj=result,
+                     default=lambda o: o.__dict__,
+                     indent=2))
