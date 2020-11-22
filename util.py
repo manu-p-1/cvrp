@@ -9,18 +9,18 @@ from typing import Union
 
 class Building:
 
-    def __init__(self, ident: Union[str, int], x: float, y: float, num_packages: int):
+    def __init__(self, node: Union[str, int], x: float, y: float, quant: int):
         """
         Creates a new House object with the parameters
-        :param ident: The identity of this house - a unique number
+        :param node: The node number of this house - a unique number
         :param x: The x-coordinate this house sits on
         :param y: The y-coordinate this house sits on
-        :param num_packages: The number of packages this house has
+        :param quant: The number of packages this house has
         """
         self._x = x
         self._y = y
-        self._num_packages = num_packages
-        self._ident = ident
+        self._quant = quant
+        self._node = node
 
     @property
     def x(self) -> float:
@@ -57,48 +57,53 @@ class Building:
         self._y = y
 
     @property
-    def num_packages(self) -> int:
+    def quant(self) -> int:
         """
-        A getter function to return the num_packages of the house
-        :return: The num_packages of this house
+        A getter function to return the number of packages to pickup from the building
+        :return: The number of packages to pickup from this building
         """
-        return self._num_packages
+        return self._quant
 
-    @num_packages.setter
-    def num_packages(self, capacity: int) -> None:
+    @quant.setter
+    def quant(self, capacity: int) -> None:
         """
-        A setter function to set the num_packages of the house
-        :param capacity: The num_packages to set for the house
+        A setter function to set the number of packages to pickup from the building
+        :param capacity: The number of packages to pickup from this building
         :return: None
         """
-        self._num_packages = capacity
+        self._quant = capacity
 
     @property
-    def ident(self) -> int:
+    def node(self) -> int:
         """
-        A getter function to return the identity of the house
-        :return: The identity of this house
+        A getter function to return the node number of the house
+        :return: The node number of this house
         """
-        return self._ident
+        return self._node
 
-    @ident.setter
-    def ident(self, ident: int) -> None:
+    @node.setter
+    def node(self, ident: int) -> None:
         """
-        A setter function to set the identity of the house
-        :param ident: The identity to set for the house
+        A setter function to set the node number of the house
+        :param ident: The node number to set for the house
         :return: None
         """
-        self._ident = ident
+        self._node = ident
 
     @staticmethod
     def distance(house1: 'Building', house2: 'Building'):
         return math.sqrt((house1.x - house2.x) ** 2 + (house1.y - house2.y) ** 2)
 
     def __str__(self):
-        return f"Identity: {self.ident}\nx: {self.x}\ny: {self.y}\nnum_packages: {self.num_packages}"
+        return f"Node: {self.node}\nx: {self.x}\ny: {self.y}\nquant: {self.quant}"
 
     def __repr__(self):
-        return f"util.House(ident: {self.ident}, x: {self.x}, y: {self.y}, num_packages: {self.num_packages})"
+        return f"util.House(node: {self.node}, x: {self.x}, y: {self.y}, quant: {self.quant})"
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self._node == other.node
+        return False
 
 
 class Vehicle:
@@ -112,16 +117,16 @@ class Vehicle:
     @property
     def capacity(self) -> int:
         """
-        A getter function to return the num_packages of this vehicle
-        :return: The num_packages of this vehicle
+        A getter function to return the capacity of this vehicle
+        :return: The the capacity of this vehicle
         """
         return self._capacity
 
     @capacity.setter
     def capacity(self, capacity: int) -> None:
         """
-        A setter function to set the num_packages for this vehicle
-        :param capacity: Sets the num_packages for this vehicle
+        A setter function to set the capacity for this vehicle
+        :param capacity: Sets the capacity for this vehicle
         :return: None
         """
         self._capacity = capacity
@@ -132,7 +137,7 @@ def populate_from_file(filename: str):
     ll = []
     with open(filename, "r") as f:
         for line in f:
-            ident, x, y, num_packages = line.split()
-            h = Building(int(ident), float(x), float(y), int(num_packages))
+            ident, x, y, quant = line.split()
+            h = Building(int(ident), float(x), float(y), int(quant))
             ll.append(h)
     return ll
