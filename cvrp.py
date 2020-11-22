@@ -5,9 +5,8 @@ import time
 from typing import Dict, List, Tuple, Union
 from util import Building, populate_from_file
 
-
 class CVRP:
-    MAX_CAPACITY = 2010
+    MAX_CAPACITY = 100
 
     def __init__(self, building_lst: List[list],
                  optimal_fitness: Union[int, None],
@@ -49,13 +48,13 @@ class CVRP:
             if route_counter not in routes:
                 routes[route_counter] = []
 
-            if current_weight + building.num_packages > cls.MAX_CAPACITY:
+            if current_weight + building.quant > cls.MAX_CAPACITY:
                 route_counter += 1
                 current_weight = 0
                 routes[route_counter] = []
 
             routes[route_counter].append(building)
-            current_weight += building.num_packages
+            current_weight += building.quant
 
         return routes
 
@@ -99,7 +98,7 @@ class CVRP:
 
         for route_num in ind2_partitioned.keys():
             # removing duplicates
-            for building in ind2_partitioned[route_num]:
+            for building in ind2_partitioned[route_num][:]:
                 if building in section_from_ind1:
                     ind2_partitioned[route_num].remove(building)
 
@@ -123,7 +122,8 @@ class CVRP:
                     closest_ind2_building_index = i
                     closest_ind2_partition = route_num
 
-        child[closest_ind2_partition][closest_ind2_building_index:closest_ind2_building_index] = section_from_ind1
+        child[closest_ind2_partition][
+        closest_ind2_building_index + 1:closest_ind2_building_index + 1] = section_from_ind1
         return CVRP.de_partition_routes(child)
 
     @classmethod
@@ -252,8 +252,8 @@ if __name__ == '__main__':
     cvrp = CVRP(building_lst=buildings,
                 optimal_fitness=None,
                 selection_size=5,
-                ngen=5000,
-                mutpb=0.5,
+                ngen=50000,
+                mutpb=0.15,
                 cxpb=0.75)
 
     result = cvrp.run()
