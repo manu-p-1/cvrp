@@ -1,5 +1,4 @@
 import json
-import random
 import random as r
 import time
 from typing import Dict, Tuple, Union
@@ -20,7 +19,7 @@ class CVRP:
                  maximize_fitness: bool = False):
 
         var_len = len(parser.buildings)
-        self.pop = [random.sample(parser.buildings, var_len) for _ in range(population_size)]
+        self.pop = [r.sample(parser.buildings, var_len) for _ in range(population_size)]
         self.population_size = population_size
         self.selection_size = selection_size
         self.optimal_fitness = optimal_fitness
@@ -79,7 +78,7 @@ class CVRP:
         """
 
         # take_five is the mating pool for this generation
-        take_five = random.sample(self.pop, self.selection_size)
+        take_five = r.sample(self.pop, self.selection_size)
         parent1 = self._get_value_and_remove(take_five, self.maximize_fitness)
         parent2 = self._get_value_and_remove(take_five, self.maximize_fitness)
         return parent1, parent2
@@ -142,8 +141,8 @@ class CVRP:
         """
 
         mid = (len(child) // 2) - 1
-        idx1 = random.randint(0, mid)
-        idx2 = random.randint(mid + 1, len(child) - 1)
+        idx1 = r.randint(0, mid)
+        idx2 = r.randint(mid + 1, len(child) - 1)
 
         while idx1 <= idx2:
             CVRP._swap(child, idx1, idx2)
@@ -203,8 +202,8 @@ class CVRP:
         found = False
         indiv = None
 
-        mut_prob = random.choices([True, False], weights=(self.mutpb, 1 - self.mutpb), k=1)[0]
-        cx_prob = random.choices([True, False], weights=(self.cxpb, 1 - self.cxpb), k=1)[0]
+        mut_prob = r.choices([True, False], weights=(self.mutpb, 1 - self.mutpb), k=1)[0]
+        cx_prob = r.choices([True, False], weights=(self.cxpb, 1 - self.cxpb), k=1)[0]
 
         for i in range(self.ngen):
 
