@@ -2,7 +2,6 @@ import json
 import random as r
 import time
 from typing import Dict, Tuple, Union
-
 from util import Building, populate_from_file
 
 
