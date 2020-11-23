@@ -132,20 +132,26 @@ class Vehicle:
         self._capacity = capacity
 
 
-def populate_from_file(filename: str):
-    class Parser:
-        def __init__(self):
-            self.depot = None
-            self.buildings = []
-
-    p = Parser()
+def populate_from_file(filename: str) -> dict:
+    values = {}
+    buildings = []
     with open(filename, "r") as f:
+
+        first_line = f.readline().split(":")
+        second_line = f.readline().split(":")
+        third_line = f.readline().split(":")
+        values[first_line[0]] = first_line[1].replace("\n", "").strip()
+        values[second_line[0]] = int(second_line[1])
+        values[third_line[0]] = int(third_line[1])
+
         for idx, line in enumerate(f):
             ident, x, y, quant = line.split()
             h = Building(int(ident), float(x), float(y), int(quant))
 
             if idx == 0:
-                p.depot = h
+                values["DEPOT"] = h
             else:
-                p.buildings.append(h)
-    return p
+                buildings.append(h)
+
+        values["BUILDINGS"] = buildings
+    return values
