@@ -91,8 +91,8 @@ class Building:
         self._node = ident
 
     @staticmethod
-    def distance(house1: 'Building', house2: 'Building'):
-        return math.sqrt((house1.x - house2.x) ** 2 + (house1.y - house2.y) ** 2)
+    def distance(b1: 'Building', b2: 'Building'):
+        return round(math.sqrt(((b1.x - b2.x) ** 2) + ((b1.y - b2.y) ** 2)))
 
     def __str__(self):
         return f"Node: {self.node}\nx: {self.x}\ny: {self.y}\nquant: {self.quant}"
@@ -133,11 +133,19 @@ class Vehicle:
 
 
 def populate_from_file(filename: str):
+    class Parser:
+        def __init__(self):
+            self.depot = None
+            self.buildings = []
 
-    ll = []
+    p = Parser()
     with open(filename, "r") as f:
-        for line in f:
+        for idx, line in enumerate(f):
             ident, x, y, quant = line.split()
             h = Building(int(ident), float(x), float(y), int(quant))
-            ll.append(h)
-    return ll
+
+            if idx == 0:
+                p.depot = h
+            else:
+                p.buildings.append(h)
+    return p
