@@ -2,30 +2,33 @@ import json
 import random
 import random as r
 import time
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Tuple, Union
+
 from util import Building, populate_from_file
+
 
 class CVRP:
     MAX_CAPACITY = 100
 
-    def __init__(self, building_lst: List[list],
+    def __init__(self, parser,
                  optimal_fitness: Union[int, None],
+                 population_size: int,
                  selection_size: int,
                  ngen: int,
                  mutpb: float,
                  cxpb: float,
                  maximize_fitness: bool = False):
 
-        var_len = len(building_lst)
-        self.pop = [random.sample(building_lst, var_len) for _ in range(var_len)]
+        var_len = len(parser.buildings)
+        self.pop = [random.sample(parser.buildings, var_len) for _ in range(population_size)]
+        self.population_size = population_size
         self.selection_size = selection_size
         self.optimal_fitness = optimal_fitness
         self.ngen = ngen
         self.mutpb = mutpb
         self.cxpb = cxpb
         self.maximize_fitness = maximize_fitness
-
-        self.depot = Building("DEPOT", 1, -1, 0)
+        self.depot = parser.depot
 
     def calc_fitness(self, individual):
         distance = 0
@@ -34,6 +37,7 @@ class CVRP:
             for i in range(len(route) - 1):
                 h1, h2 = route[i], route[i + 1]
                 distance += Building.distance(h1, h2)
+            distance += Building.distance(self.depot, route[0])
             distance += Building.distance(route[len(route) - 1], self.depot)
 
         return distance
@@ -92,10 +96,6 @@ class CVRP:
         # random route chosen to be replaced in individual 2 --> list
         section_from_ind1 = route_from_ind1[r.randint(0, len(route_from_ind1) - 1):]
 
-        closest_ind2_partition = 0
-        closest_ind2_building_index = 0
-        closest_distance = -1
-
         for route_num in ind2_partitioned.keys():
             # removing duplicates
             for building in ind2_partitioned[route_num][:]:
@@ -103,6 +103,11 @@ class CVRP:
                     ind2_partitioned[route_num].remove(building)
 
         child = ind2_partitioned
+
+        closest_child_route = 0
+        closest_child_bldg_idx = 0
+        closest_distance = -1
+
         for route_num in child.keys():
             for i, building in enumerate(child[route_num]):
                 """
@@ -115,15 +120,14 @@ class CVRP:
                 # initial min
                 if closest_distance == -1:
                     closest_distance = distance
-                    closest_ind2_building_index = i
-                    closest_ind2_partition = route_num
+                    closest_child_bldg_idx = i
+                    closest_child_route = route_num
                 elif distance < closest_distance:
                     closest_distance = distance
-                    closest_ind2_building_index = i
-                    closest_ind2_partition = route_num
+                    closest_child_bldg_idx = i
+                    closest_child_route = route_num
 
-        child[closest_ind2_partition][
-        closest_ind2_building_index + 1:closest_ind2_building_index + 1] = section_from_ind1
+        child[closest_child_route][closest_child_bldg_idx + 1:closest_child_bldg_idx + 1] = section_from_ind1
         return CVRP.de_partition_routes(child)
 
     @classmethod
@@ -239,7 +243,9 @@ class CVRP:
             "best_individual": partitioned,
             "best_individual_fitness": self.calc_fitness(individual),
             "vehicles": len(partitioned.keys()),
+            "vehicle_capacity": CVRP.MAX_CAPACITY,
             "dimension": len(individual),
+            "population_size": self.population_size,
             "selection_size": self.selection_size,
             "generations": self.ngen,
             "mutpb": self.mutpb,
@@ -248,9 +254,10 @@ class CVRP:
 
 
 if __name__ == '__main__':
-    buildings = populate_from_file("buildings.txt")
-    cvrp = CVRP(building_lst=buildings,
+    file_parser = populate_from_file("problems_sets/A-n54-k7.txt")
+    cvrp = CVRP(parser=file_parser,
                 optimal_fitness=None,
+                population_size=200,
                 selection_size=5,
                 ngen=50000,
                 mutpb=0.15,
