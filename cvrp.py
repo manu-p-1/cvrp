@@ -1,15 +1,13 @@
-import json
 import random as r
 import time
-from typing import Dict, Tuple, Union
-from util import Building, populate_from_file
+from typing import Dict, Tuple
+
+from util import Building
 
 
 class CVRP:
-    MAX_CAPACITY = 100
 
-    def __init__(self, parser,
-                 optimal_fitness: Union[int, None],
+    def __init__(self, problem_set: dict,
                  population_size: int,
                  selection_size: int,
                  ngen: int,
@@ -17,20 +15,22 @@ class CVRP:
                  cxpb: float,
                  maximize_fitness: bool = False):
 
-        var_len = len(parser.buildings)
-        self.pop = [r.sample(parser.buildings, var_len) for _ in range(population_size)]
+        var_len = len(problem_set["BUILDINGS"])
+        self.pop = [r.sample(problem_set["BUILDINGS"], var_len) for _ in range(population_size)]
+        self.depot = problem_set["DEPOT"]
+        self.vehicle_cap = problem_set["CAPACITY"]
+        self.optimal_fitness = problem_set["OPTIMAL"]
+        self.problem_set_name = problem_set["NAME"]
         self.population_size = population_size
         self.selection_size = selection_size
-        self.optimal_fitness = optimal_fitness
         self.ngen = ngen
         self.mutpb = mutpb
         self.cxpb = cxpb
         self.maximize_fitness = maximize_fitness
-        self.depot = parser.depot
 
     def calc_fitness(self, individual):
         distance = 0
-        partitioned_routes = CVRP.partition_routes(individual)
+        partitioned_routes = self.partition_routes(individual)
         for _, route in partitioned_routes.items():
             for i in range(len(route) - 1):
                 h1, h2 = route[i], route[i + 1]
@@ -40,8 +40,7 @@ class CVRP:
 
         return distance
 
-    @classmethod
-    def partition_routes(cls, individual: list) -> Dict:
+    def partition_routes(self, individual: list) -> Dict:
         routes = {}
         current_weight = 0
         route_counter = 1
@@ -50,7 +49,7 @@ class CVRP:
             if route_counter not in routes:
                 routes[route_counter] = []
 
-            if current_weight + building.quant > cls.MAX_CAPACITY:
+            if current_weight + building.quant > self.vehicle_cap:
                 route_counter += 1
                 current_weight = 0
                 routes[route_counter] = []
@@ -82,10 +81,9 @@ class CVRP:
         parent2 = self._get_value_and_remove(take_five, self.maximize_fitness)
         return parent1, parent2
 
-    @classmethod
-    def optimized_cx(cls, ind1: list, ind2: list) -> list:
-        ind1_partitioned = CVRP.partition_routes(ind1)
-        ind2_partitioned = CVRP.partition_routes(ind2)
+    def optimized_cx(self, ind1: list, ind2: list) -> list:
+        ind1_partitioned = self.partition_routes(ind1)
+        ind2_partitioned = self.partition_routes(ind2)
 
         # choose a random route from individual 1
         route_number = r.choice(list(ind1_partitioned.keys()))
@@ -207,7 +205,7 @@ class CVRP:
         for i in range(self.ngen):
 
             parent1, parent2 = self.select()
-            child1 = CVRP.optimized_cx(parent1, parent2) if cx_prob else parent1
+            child1 = self.optimized_cx(parent1, parent2) if cx_prob else parent1
             child1 = CVRP.inversion_mutation(child1) if mut_prob else child1
             child1_fit = self.calc_fitness(child1)
 
@@ -237,31 +235,17 @@ class CVRP:
         partitioned = self.partition_routes(individual)
         return {
             "name": type(self).__name__,
+            "problem_set_name": self.problem_set_name,
+            "problem_set_optimal": self.optimal_fitness,
             "time": f"{comp_time} seconds",
-            "best_individual": partitioned,
-            "best_individual_fitness": self.calc_fitness(individual),
             "vehicles": len(partitioned.keys()),
-            "vehicle_capacity": CVRP.MAX_CAPACITY,
+            "vehicle_capacity": self.vehicle_cap,
             "dimension": len(individual),
             "population_size": self.population_size,
             "selection_size": self.selection_size,
             "generations": self.ngen,
             "mutpb": self.mutpb,
             "cxpb": self.cxpb,
+            "best_individual": partitioned,
+            "best_individual_fitness": self.calc_fitness(individual),
         }
-
-
-if __name__ == '__main__':
-    f_parser = populate_from_file("problems_sets/A-n54-k7.txt")
-    cvrp = CVRP(parser=f_parser,
-                optimal_fitness=None,
-                population_size=200,
-                selection_size=5,
-                ngen=50000,
-                mutpb=0.15,
-                cxpb=0.75)
-
-    result = cvrp.run()
-    print(json.dumps(obj=result,
-                     default=lambda o: o.__dict__,
-                     indent=2))
