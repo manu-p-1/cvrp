@@ -253,8 +253,8 @@ class CVRP:
 
 
 if __name__ == '__main__':
-    file_parser = populate_from_file("problems_sets/A-n54-k7.txt")
-    cvrp = CVRP(parser=file_parser,
+    f_parser = populate_from_file("problems_sets/A-n54-k7.txt")
+    cvrp = CVRP(parser=f_parser,
                 optimal_fitness=None,
                 population_size=200,
                 selection_size=5,
