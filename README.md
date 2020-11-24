@@ -45,14 +45,18 @@ To specify arguments apart from default, view the optional arguments by running 
 `python driver.py --help`
 
 ```
-usage: driver.py [-h] [-f] [-p] [-s] [-g] [-m] [-c]
+usage: driver.py [-h] [-f] [-p] [-s] [-g] [-m] [-c] [-i] [-P]
+
+Runs the CVRP with any of the optional arguments
 
 optional arguments:
-  -h, --help     show this help message and exit
-  -f , --file    The path to the problem set
-  -p , --pop     The population size
-  -s , --sel     The selection size
-  -g , --ngen    The generation size
-  -m , --mutpb   The mutation probability
-  -c , --cxpb    The crossover probability
+  -h , --help     show this help message and exit
+  -f , --file     the path to the problem set
+  -p , --pop      the population size
+  -s , --sel      the selection size
+  -g , --ngen     the generation size
+  -m , --mutpb    the mutation probability
+  -c , --cxpb     the crossover probability
+  -i , --indent   the indentation amount of the result string
+  -P , --pgen     prints the current generation
 ```
