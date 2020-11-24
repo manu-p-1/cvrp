@@ -45,15 +45,14 @@ To specify arguments apart from default, view the optional arguments by running 
 `python driver.py --help`
 
 ```
-usage: driver.py [-h] [-t] [-f] [-p] [-s] [-g] [-m] [-c]
+usage: driver.py [-h] [-f] [-p] [-s] [-g] [-m] [-c]
 
 optional arguments:
   -h, --help     show this help message and exit
-  -t, --test     Use test set
   -f , --file    The path to the problem set
   -p , --pop     The population size
   -s , --sel     The selection size
-  -g , --gen     The generation size
+  -g , --ngen    The generation size
   -m , --mutpb   The mutation probability
   -c , --cxpb    The crossover probability
 ```
