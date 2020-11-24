@@ -144,7 +144,11 @@ class Vehicle:
         self._capacity = capacity
 
 
-def populate_from_file(filename: str) -> dict:
+def parse_file(filename: str) -> dict:
+
+    if not filename.endswith(".ocvrp"):
+        raise SyntaxError("File is not of .ocvrp type")
+
     values = {}
     buildings = []
     with open(filename, "r") as f:
