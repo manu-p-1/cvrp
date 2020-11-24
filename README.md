@@ -1,4 +1,4 @@
-# CVRP
+# Optimizing the Capacitated Vehicle Routing Problem using Genetic Algorithms
 
 ## Info
 
