@@ -4,6 +4,8 @@ util.py
 Contains classes and function that act as utilities for the main cvrp problem in cvrp.py
 """
 import math
+from json import JSONEncoder
+from typing import Tuple
 
 
 class Building:
@@ -94,15 +96,26 @@ class Building:
         return round(math.sqrt(((b1.x - b2.x) ** 2) + ((b1.y - b2.y) ** 2)))
 
     def __str__(self):
-        return f"Node: {self.node}\nx: {self.x}\ny: {self.y}\nquant: {self.quant}"
+        return f"Node: {self.node}, x: {self.x}, y: {self.y}, quant: {self.quant}"
 
     def __repr__(self):
-        return f"util.House(node: {self.node}, x: {self.x}, y: {self.y}, quant: {self.quant})"
+        return f"util.Building(node: {self.node}, x: {self.x}, y: {self.y}, quant: {self.quant})"
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self._node == other.node
         return False
+
+    def __key(self) -> Tuple:
+        return self._node, self._x, self._y, self._quant
+
+    def __hash__(self):
+        return hash(self.__key())
+
+
+class BuildingEncoder(JSONEncoder):
+    def default(self, o):
+        return o.__dict__
 
 
 class Vehicle:
