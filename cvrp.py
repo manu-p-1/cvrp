@@ -13,6 +13,7 @@ class CVRP:
                  ngen: int,
                  mutpb: float,
                  cxpb: float,
+                 pgen: bool,
                  maximize_fitness: bool = False):
 
         var_len = len(problem_set["BUILDINGS"])
@@ -26,6 +27,7 @@ class CVRP:
         self.ngen = ngen
         self.mutpb = mutpb
         self.cxpb = cxpb
+        self.pgen = pgen
         self.maximize_fitness = maximize_fitness
 
     def calc_fitness(self, individual):
@@ -276,6 +278,9 @@ class CVRP:
 
         for i in range(self.ngen):
 
+            if self.pgen:
+                print(f'{i}/{self.ngen}', end='\r')
+
             parent1, parent2 = self.select()
             child1 = self.optimized_xo(parent1, parent2) if cx_prob else parent1
             child1 = CVRP.inversion_mutation(child1) if mut_prob else child1
@@ -306,6 +311,8 @@ class CVRP:
         """
         partitioned = self.partition_routes(individual)
         return {
+            "best_individual": partitioned,
+            "best_individual_fitness": self.calc_fitness(individual),
             "name": type(self).__name__,
             "problem_set_name": self.problem_set_name,
             "problem_set_optimal": self.optimal_fitness,
@@ -318,6 +325,4 @@ class CVRP:
             "generations": self.ngen,
             "mutpb": self.mutpb,
             "cxpb": self.cxpb,
-            "best_individual": partitioned,
-            "best_individual_fitness": self.calc_fitness(individual),
         }
