@@ -81,7 +81,7 @@ class CVRP:
         parent2 = self._get_value_and_remove(take_five, self.maximize_fitness)
         return parent1, parent2
 
-    def optimized_cx(self, ind1: list, ind2: list) -> list:
+    def optimized_xo(self, ind1: list, ind2: list) -> list:
         ind1_partitioned = self.partition_routes(ind1)
         ind2_partitioned = self.partition_routes(ind2)
 
@@ -126,13 +126,85 @@ class CVRP:
         child[closest_child_route][closest_child_bldg_idx + 1:closest_child_bldg_idx + 1] = section_from_ind1
         return CVRP.de_partition_routes(child)
 
+    class CycleInfo:
+        """
+        CODE ATTRIBUTION
+
+        This class was taken and modified from the attributed author
+
+        ----------------------------------------------------------
+
+        AUTHOR: EVAN CONRAD - https://github.com/Flaque
+
+        TITLE: Python-GA
+
+        YEAR: 2017
+
+        AVAILABILITY:
+
+        https://github.com/Flaque/Python-GA
+        https://github.com/Flaque/Python-GA/blob/master/cx.py
+        ----------------------------------------------------------
+        """
+
+        def __init__(self, father, mother):
+            self._mother = mother
+            self._father = father
+
+        @staticmethod
+        def _map(father, mother):
+            return dict(zip(father, mother))
+
+        @staticmethod
+        def _find_cycle(start, relation_map):
+            cycle = [start]
+
+            current = relation_map[start]
+            while current not in cycle:
+                cycle.append(current)
+                current = relation_map[current]
+            return cycle
+
+        def get_cycle_info(self):
+            return self._get_cycle_info()
+
+        def _get_cycle_info(self):
+
+            fathers_child = self._father[:]
+            mothers_child = self._mother[:]
+            relation_map = self._map(fathers_child, mothers_child)
+
+            cycles_list = []
+            for i in range(0, len(fathers_child) - 1):
+                cycle = self._find_cycle(fathers_child[i], relation_map)
+
+                if len(cycles_list) == 0:
+                    cycles_list.append(cycle)
+                else:
+                    flag = False
+                    for j in cycles_list:
+                        for k in cycle:
+                            if k in j:
+                                flag = True
+                                break
+                    if not flag:
+                        cycles_list.append(cycle)
+            return {
+                "cycles_list": cycles_list,
+                "relation_map": relation_map
+            }
+
+    def cycle_xo(self, ind1, ind2):
+        ci = self.CycleInfo(ind1, ind2)
+        return ci.get_cycle_info()
+
     @classmethod
     def inversion_mutation(cls, child: list) -> list:
         """
-        Mutates a child's genes by choosing two random indices between 0 and len(chromosome) - 1. From a programming
-        perspective, two indices are chosen: one between 0 and the list midpoint and one between the midpoint and the
-        length of the list. Every value between the two chosen indices are mirrored. This way, the values mutate
-        while preserving the permutation.
+        Mutates a child's genes by choosing two random indices between 0 and len(chromosome) - 1.
+        From a programming perspective, two indices are chosen: one between 0 and the list midpoint and one
+        between the midpoint and the length of the list. Every value between the two chosen indices are mirrored.
+        This way, the values mutate while preserving the permutation.
         :param child: The child as a dictionary object (at this stage only containing a key to the chromosome as a list)
         :return: The mutated child
         """
@@ -205,7 +277,7 @@ class CVRP:
         for i in range(self.ngen):
 
             parent1, parent2 = self.select()
-            child1 = self.optimized_cx(parent1, parent2) if cx_prob else parent1
+            child1 = self.optimized_xo(parent1, parent2) if cx_prob else parent1
             child1 = CVRP.inversion_mutation(child1) if mut_prob else child1
             child1_fit = self.calc_fitness(child1)
 
