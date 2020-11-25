@@ -302,7 +302,7 @@ class CVRP:
         5.) Survivor replacement
         :return: A potential solution if found or the closest optimal solution otherwise
         """
-        print("Running...")
+        print(f"Running {self.ngen} generations(s)...")
         t = time.process_time()
         found = False
         indiv = None
