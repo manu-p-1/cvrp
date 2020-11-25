@@ -177,7 +177,7 @@ class CVRP:
             relation_map = self._map(fathers_child, mothers_child)
 
             cycles_list = []
-            for i in range(0, len(fathers_child) - 1):
+            for i in range(len(fathers_child)):
                 cycle = self._find_cycle(fathers_child[i], relation_map)
 
                 if len(cycles_list) == 0:
@@ -191,14 +191,48 @@ class CVRP:
                                 break
                     if not flag:
                         cycles_list.append(cycle)
-            return {
-                "cycles_list": cycles_list,
-                "relation_map": relation_map
-            }
+            return cycles_list
 
     def cycle_xo(self, ind1, ind2):
-        ci = self.CycleInfo(ind1, ind2)
-        return ci.get_cycle_info()
+        cl = self.CycleInfo(ind1, ind2).get_cycle_info()
+        possible_children = []
+
+        for i in range(15):
+            o_child_opt, e_child_opt = [None] * len(ind1), [None] * len(ind1)
+            binaries = [bool(r.getrandbits(1)) for _ in cl]
+
+            all_ = len(set(binaries))
+            if all_ == 1:
+                ri = r.randint(0, len(binaries) - 1)
+                binaries[ri] = not binaries[ri]
+
+            bin_counter = 0
+            for c in cl:
+                if not binaries[bin_counter]:
+                    # if 0, get from ind2
+                    for allele in c:
+                        ind1_idx = ind1.index(allele)
+                        o_child_opt[ind1_idx] = ind2[ind1_idx]
+                        e_child_opt[ind1_idx] = ind1[ind1_idx]
+                else:
+                    # else 1, get from ind1
+                    for allele in c:
+                        ind1_idx = ind1.index(allele)
+                        o_child_opt[ind1_idx] = allele
+                        e_child_opt[ind1_idx] = ind2[ind1_idx]
+                bin_counter += 1
+
+            possible_children.append({
+                "o-child": o_child_opt,
+                "e-child": e_child_opt,
+                "cycles": cl,
+                "binaries": binaries
+            })
+
+        # O-Child
+        min_building = min(possible_children, key=lambda t: self.calc_fitness(t['o-child']))
+
+        return min_building
 
     @classmethod
     def inversion_mutation(cls, child: list) -> list:
