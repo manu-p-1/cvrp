@@ -45,18 +45,25 @@ To specify arguments apart from default, view the optional arguments by running 
 `python driver.py --help`
 
 ```
-usage: driver.py [-h] [-f] [-p] [-s] [-g] [-m] [-c] [-i] [-P]
+usage: driver.py [-h] [-f] [-p] [-s] [-g] [-m] [-c] [-r] [-o]
+                 [--brxo | --cxo | --erxo | --oxo] [-i ] [-P]
 
 Runs the CVRP with any of the optional arguments
 
 optional arguments:
-  -h , --help     show this help message and exit
-  -f , --file     the path to the problem set
-  -p , --pop      the population size
-  -s , --sel      the selection size
-  -g , --ngen     the generation size
-  -m , --mutpb    the mutation probability
-  -c , --cxpb     the crossover probability
-  -i , --indent   the indentation amount of the result string
-  -P , --pgen     prints the current generation
+  -h, --help          show this help message and exit
+  -f , --file         the path to the problem set
+  -p , --pop          the population size
+  -s , --sel          the selection size
+  -g , --ngen         the generation size
+  -m , --mutpb        the mutation probability
+  -c , --cxpb         the crossover probability
+  -r , --run          the number of times to run the problem
+  -o , --offspring    the number of offspring to generate
+  --brxo              use best route crossover
+  --cxo               use cycle crossover
+  --erxo              use edge recombination crossover
+  --oxo               use order crossover
+  -i [], --indent []  the indentation amount of the result string
+  -P, --pgen          prints the current generation
 ```
