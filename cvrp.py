@@ -15,6 +15,9 @@ class CVRP:
                  mutpb: float,
                  cxpb: float,
                  pgen: bool,
+                 num_offspring: int,
+                 cx_algo,
+                 mt_algo,
                  maximize_fitness: bool = False):
 
         var_len = len(problem_set["BUILDINGS"])
@@ -28,6 +31,9 @@ class CVRP:
         self.ngen = ngen
         self.mutpb = mutpb
         self.cxpb = cxpb
+        self.num_offspring = num_offspring
+        self.cx_algo = cx_algo.__name__
+        self.mt_algo = mt_algo.__name__
         self.pgen = pgen
         self.maximize_fitness = maximize_fitness
 
@@ -132,23 +138,28 @@ class CVRP:
                 print(f'{i}/{self.ngen}', end='\r')
 
             parent1, parent2 = self.select()
+            for _ in range(self.num_offspring):
 
-            child1 = algorithms.best_route_xo(parent1, parent2, self) if cx_prob else parent1
-            # child1 = algorithms.cycle_xo(parent1, parent2, self)['o-child'] if cx_prob else parent1
-            # child1 = algorithms.edge_recomb_xo(parent1, parent2) if cx_prob else parent1
-            # child1 = algorithms.order_xo(parent1, parent2) if cx_prob else parent1
+                if self.cx_algo == 'best_route_xo':
+                    child = algorithms.best_route_xo(parent1, parent2, self) if cx_prob else parent1
+                elif self.cx_algo == 'cycle_xo':
+                    child = algorithms.cycle_xo(parent1, parent2, self)['o-child'] if cx_prob else parent1
+                elif self.cx_algo == 'edge_recomb_xo':
+                    child = algorithms.edge_recomb_xo(parent1, parent2) if cx_prob else parent1
+                else:
+                    child = algorithms.order_xo(parent1, parent2) if cx_prob else parent1
 
-            child1 = algorithms.inversion_mutation(child1) if mut_prob else child1
-            child1_fit = self.calc_fitness(child1)
+                child = algorithms.inversion_mutation(child) if mut_prob else child
+                child1_fit = self.calc_fitness(child)
 
-            if self.optimal_fitness is not None:
-                # One of the children were found to have an optimal fitness, so I'll save that
-                if child1_fit == self.optimal_fitness:
-                    indiv = child1
-                    found = True
-                    break
+                if self.optimal_fitness is not None:
+                    # One of the children were found to have an optimal fitness, so I'll save that
+                    if child1_fit == self.optimal_fitness:
+                        indiv = child
+                        found = True
+                        break
 
-            self.replacement_strat(child1)
+                self.replacement_strat(child)
 
         # Find the closest value to the optimal fitness (in case we don't find a solution)
         closest = self._get_value_and_remove(self.pop, self.maximize_fitness)
@@ -178,6 +189,9 @@ class CVRP:
             "population_size": self.population_size,
             "selection_size": self.selection_size,
             "generations": self.ngen,
-            "mutpb": self.mutpb,
             "cxpb": self.cxpb,
+            "mutpb": self.mutpb,
+            "offspring": self.num_offspring,
+            "cx_algorithm": self.cx_algo,
+            "mut_algorithm": self.mt_algo
         }
