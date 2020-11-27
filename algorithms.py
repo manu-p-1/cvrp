@@ -53,56 +53,44 @@ def best_route_xo(ind1: list, ind2: list, cvrp) -> list:
 
 
 class CycleInfo:
-    """
-    CODE ATTRIBUTION
-
-    This class was taken and modified from the attributed author
-
-    ----------------------------------------------------------
-
-    AUTHOR: EVAN CONRAD - https://github.com/Flaque
-
-    TITLE: Python-GA
-
-    YEAR: 2017
-
-    AVAILABILITY:
-
-    https://github.com/Flaque/Python-GA
-    https://github.com/Flaque/Python-GA/blob/master/cx.py
-    ----------------------------------------------------------
-    """
 
     def __init__(self, father, mother):
         self._mother = mother
         self._father = father
 
     @staticmethod
-    def _map(father, mother):
-        return dict(zip(father, mother))
-
-    @staticmethod
-    def _find_cycle(start, relation_map):
+    def _find_cycle(start, correspondence_map):
+        """
+        This FUNCTION was taken and modified from the attributed author
+        ----------------------------------------------------------
+        AUTHOR: EVAN CONRAD - https://github.com/Flaque
+        TITLE: Python-GA
+        YEAR: 2017
+        AVAILABILITY:
+        https://github.com/Flaque/Python-GA/blob/master/cx.py
+        ----------------------------------------------------------
+        :param start: The starting number of the cycle
+        :param correspondence_map: A map corresponding the fathers allele index to the mothers
+        :return: the cycle formation of the individual
+        """
         cycle = [start]
-
-        current = relation_map[start]
+        current = correspondence_map[start]
         while current not in cycle:
             cycle.append(current)
-            current = relation_map[current]
+            current = correspondence_map[current]
         return cycle
 
     def get_cycle_info(self):
         return self._get_cycle_info()
 
     def _get_cycle_info(self):
-
-        fathers_child = self._father[:]
-        mothers_child = self._mother[:]
-        relation_map = self._map(fathers_child, mothers_child)
+        f_cpy = self._father[:]
+        m_cpy = self._mother[:]
+        correspondence_map = dict(zip(f_cpy, m_cpy))
 
         cycles_list = []
-        for i in range(len(fathers_child)):
-            cycle = self._find_cycle(fathers_child[i], relation_map)
+        for i in range(len(f_cpy)):
+            cycle = self._find_cycle(f_cpy[i], correspondence_map)
 
             if len(cycles_list) == 0:
                 cycles_list.append(cycle)
