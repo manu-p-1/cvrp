@@ -1,4 +1,5 @@
 import random as r
+import statistics
 import time
 from typing import Dict, Tuple
 
@@ -15,6 +16,7 @@ class CVRP:
                  mutpb: float,
                  cxpb: float,
                  pgen: bool,
+                 agen: bool,
                  num_offspring: int,
                  cx_algo,
                  mt_algo,
@@ -35,6 +37,7 @@ class CVRP:
         self.cx_algo = cx_algo.__name__
         self.mt_algo = mt_algo.__name__
         self.pgen = pgen
+        self.agen = agen
         self.maximize_fitness = maximize_fitness
 
     def calc_fitness(self, individual):
@@ -132,10 +135,7 @@ class CVRP:
         mut_prob = r.choices([True, False], weights=(self.mutpb, 1 - self.mutpb), k=1)[0]
         cx_prob = r.choices([True, False], weights=(self.cxpb, 1 - self.cxpb), k=1)[0]
 
-        for i in range(self.ngen):
-
-            if self.pgen:
-                print(f'{i}/{self.ngen}', end='\r')
+        for i in range(1, self.ngen + 1):
 
             parent1, parent2 = self.select()
             for _ in range(self.num_offspring):
@@ -160,6 +160,14 @@ class CVRP:
                         break
 
                 self.replacement_strat(child)
+
+                if self.pgen:
+                    print(f'{i}/{self.ngen}', end='\r')
+
+            if self.agen:
+                if i % 1000 == 0 or i == 1:
+                    s = sum(self.calc_fitness(h) for h in self.pop)
+                    print(f"GEN: {i}: AVERAGE FITNESS: {round(s / self.population_size)}")
 
         # Find the closest value to the optimal fitness (in case we don't find a solution)
         closest = self._get_value_and_remove(self.pop, self.maximize_fitness)

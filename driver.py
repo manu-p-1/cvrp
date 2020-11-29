@@ -70,6 +70,7 @@ if __name__ == '__main__':
     parser.add_argument("-i", "--indent", metavar='', nargs="?", type=int_ge_one, const=2,
                         help="the indentation amount of the result string")
     parser.add_argument("-P", "--pgen", action='store_true', help="prints the current generation")
+    parser.add_argument("-A", "--agen", action='store_true', help="prints the average fitness every 1000 generations")
     args = parser.parse_args()
 
     p_set = parse_file(args.file) if args.file else parse_file("data/A-n54-k7.ocvrp")
@@ -98,7 +99,8 @@ if __name__ == '__main__':
                 num_offspring=offspring,
                 cx_algo=cx_algo,
                 mt_algo=mt_algo,
-                pgen=args.pgen if args.pgen else False)
+                pgen=args.pgen,
+                agen=args.agen)
 
     for i in range(runtime):
         result = cvrp.run()

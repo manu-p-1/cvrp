@@ -46,7 +46,7 @@ To specify arguments apart from default, view the optional arguments by running 
 
 ```
 usage: driver.py [-h] [-f] [-p] [-s] [-g] [-m] [-c] [-r] [-o]
-                 [--brxo | --cxo | --erxo | --oxo] [-i ] [-P]
+                 [--brxo | --cxo | --erxo | --oxo] [-i ] [-P] [-A]
 
 Runs the CVRP with any of the optional arguments
 
@@ -66,4 +66,5 @@ optional arguments:
   --oxo               use order crossover
   -i [], --indent []  the indentation amount of the result string
   -P, --pgen          prints the current generation
+  -A, --agen          prints the average fitness every 1000 generations
 ```
