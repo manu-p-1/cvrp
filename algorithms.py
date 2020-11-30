@@ -1,18 +1,19 @@
 import math
 import random as r
+from typing import Dict, Union, List
 
-from util import Building
+from util import Building, Individual
 
 
-def best_route_xo(ind1: list, ind2: list, cvrp) -> list:
+def best_route_xo(ind1: Individual, ind2: Individual, cvrp) -> Individual:
     ind1_partitioned = cvrp.partition_routes(ind1)
     ind2_partitioned = cvrp.partition_routes(ind2)
 
-    # choose a random route from individual 1
+    # choose a random route from chromosome 1
     route_number = r.choice(list(ind1_partitioned.keys()))
     route_from_ind1 = ind1_partitioned[route_number]
 
-    # random route chosen to be replaced in individual 2 --> list
+    # random route chosen to be replaced in chromosome 2 --> list
     section_from_ind1 = route_from_ind1[r.randint(0, len(route_from_ind1) - 1):]
 
     for route_num in ind2_partitioned.keys():
@@ -49,12 +50,12 @@ def best_route_xo(ind1: list, ind2: list, cvrp) -> list:
     child[closest_child_route][closest_child_bldg_idx + 1:closest_child_bldg_idx + 1] = section_from_ind1
 
     # Python allows instances to call @staticmethod decorators with no issues
-    return cvrp.de_partition_routes(child)
+    return Individual(cvrp.de_partition_routes(child), None)
 
 
 class CycleInfo:
 
-    def __init__(self, father, mother):
+    def __init__(self, father: Individual, mother: Individual):
         self._mother = mother
         self._father = father
 
@@ -71,7 +72,7 @@ class CycleInfo:
         ----------------------------------------------------------
         :param start: The starting number of the cycle
         :param correspondence_map: A map corresponding the fathers allele index to the mothers
-        :return: the cycle formation of the individual
+        :return: the cycle formation of the chromosome
         """
         cycle = [start]
         current = correspondence_map[start]
@@ -106,7 +107,7 @@ class CycleInfo:
         return cycles_list
 
 
-def cycle_xo(ind1, ind2, cvrp):
+def cycle_xo(ind1: Individual, ind2: Individual, cvrp) -> Dict[str, Union[List[None], List[list], List[bool]]]:
     cl = CycleInfo(ind1, ind2).get_cycle_info()
     p_children = []
     cycle_len = len(cl)
@@ -117,7 +118,8 @@ def cycle_xo(ind1, ind2, cvrp):
                         - 19 * math.log(cycle_len))
 
     for i in range(runtime):
-        o_child, e_child = [None] * len(ind1), [None] * len(ind1)
+        o_child = Individual([None] * len(ind1), None)
+        e_child = Individual([None] * len(ind1), None)
 
         binaries = [bool(r.getrandbits(1)) for _ in cl]
         all_ = len(set(binaries))
@@ -145,6 +147,7 @@ def cycle_xo(ind1, ind2, cvrp):
                     e_child[ind1_idx] = ind2[ind1_idx]
             bin_counter += 1
 
+        o_child.fitness = cvrp.calc_fitness(o_child)
         p_children.append({
             "o-child": o_child,
             "e-child": e_child,
@@ -152,13 +155,14 @@ def cycle_xo(ind1, ind2, cvrp):
             "binaries": binaries
         })
 
-    # O-Child
-    children = min(p_children, key=lambda t: cvrp.calc_fitness(t['o-child']))
+    # Sort based on O-Child fitness
+    children = min(p_children, key=lambda pc: pc['o-child'].fitness)
+    children["e-child"].fitness = cvrp.calc_fitness(children['e-child'])
 
     return children
 
 
-def edge_recomb_xo(ind1, ind2):
+def edge_recomb_xo(ind1: Individual, ind2: Individual) -> Individual:
     # May need to enforce size of len(2)
     ind1_adjacent = {}
     ind2_adjacent = {}
@@ -205,10 +209,10 @@ def edge_recomb_xo(ind1, ind2):
             n_star = r.choice(diff) if len(diff) > 0 else None
         n = n_star
 
-    return child
+    return Individual(child, None)
 
 
-def order_xo(ind1, ind2):
+def order_xo(ind1: Individual, ind2: Individual) -> Individual:
     bound = len(ind1)
 
     cxp1 = r.randint(0, (bound - 1) // 2)
@@ -241,10 +245,10 @@ def order_xo(ind1, ind2):
             child_idx += 1
         parent_idx += 1
 
-    return child
+    return Individual(child, None)
 
 
-def inversion_mutation(child: list) -> list:
+def inversion_mutation(child: Individual) -> Individual:
     """
     Mutates a child's genes by choosing two random indices between 0 and len(chromosome) - 1.
     From a programming perspective, two indices are chosen: one between 0 and the list midpoint and one
@@ -266,7 +270,7 @@ def inversion_mutation(child: list) -> list:
     return child
 
 
-def _swap(ll: list, idx1: int, idx2: int) -> None:
+def _swap(ll: Individual, idx1: int, idx2: int) -> None:
     """
     Swaps two positions in pythonic fashion given a list.
     :param ll: The list to swap values from
