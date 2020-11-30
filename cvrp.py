@@ -145,8 +145,9 @@ class CVRP:
                     child1 = algorithms.best_route_xo(parent1, parent2, self)
                     child2 = algorithms.best_route_xo(parent2, parent1, self)
                 elif self.cx_algo == 'cycle_xo':
-                    child1 = algorithms.cycle_xo(parent1, parent2, self)['o-child']
-                    child2 = algorithms.cycle_xo(parent1, parent2, self)['e-child']
+                    cxo = algorithms.cycle_xo(parent1, parent2, self)
+                    child1 = cxo['o-child']
+                    child2 = cxo['e-child']
                 elif self.cx_algo == 'edge_recomb_xo':
                     child1 = algorithms.edge_recomb_xo(parent1, parent2)
                     child2 = algorithms.edge_recomb_xo(parent2, parent1)
@@ -170,13 +171,8 @@ class CVRP:
                     found = True
                     break
 
-            indivs = [child1, child2, parent1, parent2]
-            indiv1 = min(indivs, key=lambda l: self.calc_fitness(l))
-            indivs.remove(indiv1)
-            indiv2 = min(indivs, key=lambda l: self.calc_fitness(l))
-
-            self.replacement_strat(indiv1)
-            self.replacement_strat(indiv2)
+            self.replacement_strat(child1)
+            self.replacement_strat(child2)
 
             if self.pgen:
                 print(f'{i}/{self.ngen}', end='\r')
