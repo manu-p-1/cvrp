@@ -58,8 +58,8 @@ optional arguments:
   -g , --ngen         the generation size
   -m , --mutpb        the mutation probability
   -c , --cxpb         the crossover probability
+  -S, --save          saves the fitness values every 1000 generations to a file
   -r , --run          the number of times to run the problem
-  -o , --offspring    the number of offspring to generate
   --brxo              use best route crossover
   --cxo               use cycle crossover
   --erxo              use edge recombination crossover
