@@ -1,5 +1,4 @@
 import random as r
-import statistics
 import time
 from typing import Dict, Tuple
 
@@ -18,7 +17,6 @@ class CVRP:
                  cxpb: float,
                  pgen: bool,
                  agen: bool,
-                 num_offspring: int,
                  cx_algo,
                  mt_algo,
                  maximize_fitness: bool = False,
@@ -35,7 +33,6 @@ class CVRP:
         self.ngen = ngen
         self.mutpb = mutpb
         self.cxpb = cxpb
-        self.num_offspring = num_offspring
         self.cx_algo = cx_algo.__name__
         self.mt_algo = mt_algo.__name__
         self.pgen = pgen
@@ -143,31 +140,46 @@ class CVRP:
         for i in range(1, self.ngen + 1):
 
             parent1, parent2 = self.select()
-            for _ in range(self.num_offspring):
-
+            if cx_prob:
                 if self.cx_algo == 'best_route_xo':
-                    child = algorithms.best_route_xo(parent1, parent2, self) if cx_prob else parent1
+                    child1 = algorithms.best_route_xo(parent1, parent2, self)
+                    child2 = algorithms.best_route_xo(parent2, parent1, self)
                 elif self.cx_algo == 'cycle_xo':
-                    child = algorithms.cycle_xo(parent1, parent2, self)['o-child'] if cx_prob else parent1
+                    child1 = algorithms.cycle_xo(parent1, parent2, self)['o-child']
+                    child2 = algorithms.cycle_xo(parent1, parent2, self)['e-child']
                 elif self.cx_algo == 'edge_recomb_xo':
-                    child = algorithms.edge_recomb_xo(parent1, parent2) if cx_prob else parent1
+                    child1 = algorithms.edge_recomb_xo(parent1, parent2)
+                    child2 = algorithms.edge_recomb_xo(parent2, parent1)
                 else:
-                    child = algorithms.order_xo(parent1, parent2) if cx_prob else parent1
+                    child1 = algorithms.order_xo(parent1, parent2)
+                    child2 = algorithms.order_xo(parent2, parent1)
+            else:
+                child1 = parent1
+                child2 = parent2
 
-                child = algorithms.inversion_mutation(child) if mut_prob else child
-                child1_fit = self.calc_fitness(child)
+            child1 = algorithms.inversion_mutation(child1) if mut_prob else child1
+            child2 = algorithms.inversion_mutation(child2) if mut_prob else child2
 
-                if self.optimal_fitness is not None:
-                    # One of the children were found to have an optimal fitness, so I'll save that
-                    if child1_fit == self.optimal_fitness:
-                        indiv = child
-                        found = True
-                        break
+            child1_fit = self.calc_fitness(child1)
+            child2_fit = self.calc_fitness(child2)
 
-                self.replacement_strat(child)
+            if self.optimal_fitness is not None:
+                # One of the children were found to have an optimal fitness, so I'll save that
+                if child1_fit == self.optimal_fitness or child2_fit == self.optimal_fitness:
+                    indiv = child1 if child1_fit == self.optimal_fitness else child2
+                    found = True
+                    break
 
-                if self.pgen:
-                    print(f'{i}/{self.ngen}', end='\r')
+            indivs = [child1, child2, parent1, parent2]
+            indiv1 = min(indivs, key=lambda l: self.calc_fitness(l))
+            indivs.remove(indiv1)
+            indiv2 = min(indivs, key=lambda l: self.calc_fitness(l))
+
+            self.replacement_strat(indiv1)
+            self.replacement_strat(indiv2)
+
+            if self.pgen:
+                print(f'{i}/{self.ngen}', end='\r')
 
             if self.agen:
                 if i % 1000 == 0 or i == 1:
@@ -264,7 +276,6 @@ class CVRP:
             "generations": self.ngen,
             "cxpb": self.cxpb,
             "mutpb": self.mutpb,
-            "offspring": self.num_offspring,
             "cx_algorithm": self.cx_algo,
             "mut_algorithm": self.mt_algo
         }
