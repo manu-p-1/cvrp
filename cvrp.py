@@ -5,7 +5,8 @@ from typing import Dict, Tuple
 
 import algorithms
 from util import Building
-
+import matplotlib.pyplot as plt
+import numpy as np
 
 class CVRP:
 
@@ -20,7 +21,8 @@ class CVRP:
                  num_offspring: int,
                  cx_algo,
                  mt_algo,
-                 maximize_fitness: bool = False):
+                 maximize_fitness: bool = False,
+                 sf = False):
 
         var_len = len(problem_set["BUILDINGS"])
         self.pop = [r.sample(problem_set["BUILDINGS"], var_len) for _ in range(population_size)]
@@ -38,6 +40,7 @@ class CVRP:
         self.mt_algo = mt_algo.__name__
         self.pgen = pgen
         self.agen = agen
+        self.sf = sf
         self.maximize_fitness = maximize_fitness
 
     def calc_fitness(self, individual):
@@ -127,6 +130,8 @@ class CVRP:
         5.) Survivor replacement
         :return: A potential solution if found or the closest optimal solution otherwise
         """
+
+
         print(f"Running {self.ngen} generation(s)...")
         t = time.process_time()
         found = False
@@ -168,6 +173,66 @@ class CVRP:
                 if i % 1000 == 0 or i == 1:
                     s = sum(self.calc_fitness(h) for h in self.pop)
                     print(f"GEN: {i}: AVERAGE FITNESS: {round(s / self.population_size)}")
+            
+            if self.sf:
+                
+                if i == 1:
+                    worst_data = []
+                    best_data = []
+                    avg_data = []
+                    f = open(f'{self.cx_algo}_{len(self.pop)}_{self.ngen}.txt', 'w')
+                    if i == 1:
+                        f.write('WORST    BEST    AVERAGE\n')
+                    
+                    if i % 1000 == 0 or i == 1:
+                        fitness_vals = [self.calc_fitness(h) for h in self.pop]
+                        s = sum(fitness_vals)
+                            
+                        worst_val = min(fitness_vals)
+                        worst_data.append(worst_val)
+
+                        best_val = max(fitness_vals)
+                        best_data.append(best_val)
+                        
+                        average_val = round(s / self.population_size)
+                        avg_data.append(average_val)
+
+                        f.write(f'{worst_val}     {best_val}    {average_val}\n')
+                        
+                    if i == self.ngen:
+                        f.close()
+                else:
+                    
+                    f = open(f'{self.cx_algo}_{len(self.pop)}_{self.ngen}.txt', 'a')
+                    if i % 1000 == 0 or i == 1:
+                        fitness_vals = [self.calc_fitness(h) for h in self.pop]
+                        s = sum(fitness_vals)
+                        
+                        worst_val = min(fitness_vals)
+                        worst_data.append(worst_val)
+                        print('appending')
+                        best_val = max(fitness_vals)
+                        best_data.append(best_val)
+                        
+                        average_val = round(s / self.population_size)
+                        avg_data.append(average_val)
+                            
+                        f.write(f'{worst_val}     {best_val}    {average_val}\n')
+                        
+                    if i == self.ngen:
+                        plt.plot(worst_data, linestyle="dotted", label="Worst Fitness Values")
+                        plt.plot(best_data, linestyle="dotted", label="Best Fitness Values")
+                        plt.plot(avg_data, linestyle="dotted", label="Average Fitness Values")
+                        plt.title(f'{self.cx_algo}_{len(self.pop)}_{self.ngen}_graph')
+                        plt.legend(bbox_to_anchor=(1.04,1), borderaxespad=0)
+                        plt.xlabel("Fitness")
+                        plt.ylabel("Generations")
+                        plt.savefig(f'{self.cx_algo}_{len(self.pop)}_{self.ngen}_graphs.png')
+                        plt.show()
+                        print('saving')
+                        f.close()
+
+
 
         # Find the closest value to the optimal fitness (in case we don't find a solution)
         closest = self._get_value_and_remove(self.pop, self.maximize_fitness)
