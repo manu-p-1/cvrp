@@ -5,7 +5,7 @@ from typing import Dict, Tuple
 import matplotlib.pyplot as plt
 
 import algorithms
-from util import Building
+from util import Building, Individual
 
 
 class CVRP:
@@ -21,14 +21,19 @@ class CVRP:
                  cx_algo,
                  mt_algo,
                  maximize_fitness: bool = False,
-                 sf=False):
+                 plot=False):
 
         var_len = len(problem_set["BUILDINGS"])
-        self.pop = [r.sample(problem_set["BUILDINGS"], var_len) for _ in range(population_size)]
         self.depot = problem_set["DEPOT"]
         self.vehicle_cap = problem_set["CAPACITY"]
         self.optimal_fitness = problem_set["OPTIMAL"]
         self.problem_set_name = problem_set["NAME"]
+
+        self.pop = []
+        for _ in range(population_size):
+            rpmt = r.sample(problem_set['BUILDINGS'], var_len)
+            self.pop.append(Individual(rpmt, self.calc_fitness(rpmt)))
+
         self.population_size = population_size
         self.selection_size = selection_size
         self.ngen = ngen
@@ -38,7 +43,7 @@ class CVRP:
         self.mt_algo = mt_algo.__name__
         self.pgen = pgen
         self.agen = agen
-        self.sf = sf
+        self.plot = plot
         self.maximize_fitness = maximize_fitness
 
     def calc_fitness(self, individual):
@@ -53,7 +58,7 @@ class CVRP:
 
         return distance
 
-    def partition_routes(self, individual: list) -> Dict:
+    def partition_routes(self, individual: Individual) -> Dict:
         routes = {}
         current_weight = 0
         route_counter = 1
@@ -73,14 +78,14 @@ class CVRP:
         return routes
 
     @staticmethod
-    def de_partition_routes(individual: Dict):
+    def de_partition_routes(partitioned_routes: Dict):
         ll = []
         # This length should only be one
-        for v in individual.values():
+        for v in partitioned_routes.values():
             ll.extend(v)
         return ll
 
-    def select(self) -> Tuple[list, list]:
+    def select(self) -> Tuple[Individual, Individual]:
         """
         For selection, five individuals are randomly sampled. Of the five, the two with the best selected
         are chosen to become parents. We employ a form of tournament selection here.
@@ -89,32 +94,31 @@ class CVRP:
 
         # take_five is the mating pool for this generation
         take_five = r.sample(self.pop, self.selection_size)
-        parent1 = self._get_value_and_remove(take_five, self.maximize_fitness)
-        parent2 = self._get_value_and_remove(take_five, self.maximize_fitness)
+        parent1 = self._get_value_and_remove(take_five)
+        parent2 = self._get_value_and_remove(take_five)
         return parent1, parent2
 
-    def replacement_strat(self, new_indiv: list) -> None:
+    def replacement_strat(self, individual: Individual) -> None:
         """
         Replaces the two worst individuals in the population with two new ones.
-        :param new_indiv: The new individual to replace a candidate in the population
+        :param individual: The new individual to replace a candidate in the population
         :return: None
         """
-        self._get_value_and_remove(self.pop, not self.maximize_fitness)
-        self.pop.append(new_indiv)
+        self._get_value_and_remove(self.pop)
+        self.pop.append(individual)
 
-    def _get_value_and_remove(self, sel_values: list, maximized: bool):
+    def _get_value_and_remove(self, sel_values):
         """
-        A helper method to get and remove an individual based on highest fitness level. If the fitness is being
+        A helper method to get and remove an chromosome based on highest fitness level. If the fitness is being
         maximized, the lower fitness is removed and vice versa.
-        :param sel_values: A list of buildings
-        :param maximized: A flag indicating whether the fitness should be maximized or minimized
-        :return: The individual with the highest fitness
+        :param sel_values: A chromosome
+        :return: The chromosome with the highest fitness
         """
 
-        if maximized:
-            val = max(sel_values, key=lambda indiv: self.calc_fitness(indiv))
+        if self.maximize_fitness:
+            val = min(sel_values)
         else:
-            val = min(sel_values, key=lambda indiv: self.calc_fitness(indiv))
+            val = max(sel_values)
         sel_values.remove(val)
         return val
 
@@ -136,6 +140,8 @@ class CVRP:
 
         mut_prob = r.choices([True, False], weights=(self.mutpb, 1 - self.mutpb), k=1)[0]
         cx_prob = r.choices([True, False], weights=(self.cxpb, 1 - self.cxpb), k=1)[0]
+
+        worst_data, best_data, avg_data = [], [], []
 
         for i in range(1, self.ngen + 1):
 
@@ -161,15 +167,22 @@ class CVRP:
             child1 = algorithms.inversion_mutation(child1) if mut_prob else child1
             child2 = algorithms.inversion_mutation(child2) if mut_prob else child2
 
-            child1_fit = self.calc_fitness(child1)
-            child2_fit = self.calc_fitness(child2)
+            """
+            Only calculate fitness if a crossover or mutation occurred, or if the xover did not
+            assign a fitness value. E.g. Cycle XO assigns mandates ranking fitness, so we don't
+            need to calculate again.
+            """
+            if child1.fitness is None:
+                child1.fitness = self.calc_fitness(child1)
 
-            if self.optimal_fitness is not None:
-                # One of the children were found to have an optimal fitness, so I'll save that
-                if child1_fit == self.optimal_fitness or child2_fit == self.optimal_fitness:
-                    indiv = child1 if child1_fit == self.optimal_fitness else child2
-                    found = True
-                    break
+            if child2.fitness is None:
+                child2.fitness = self.calc_fitness(child2)
+
+            # One of the children were found to have an optimal fitness, so I'll save that
+            if child1.fitness == self.optimal_fitness or child2.fitness == self.optimal_fitness:
+                indiv = child1 if child1.fitness == self.optimal_fitness else child2
+                found = True
+                break
 
             self.replacement_strat(child1)
             self.replacement_strat(child2)
@@ -177,87 +190,45 @@ class CVRP:
             if self.pgen:
                 print(f'{i}/{self.ngen}', end='\r')
 
-            if self.agen:
-                if i % 1000 == 0 or i == 1:
-                    s = sum(self.calc_fitness(h) for h in self.pop)
-                    print(f"GEN: {i}: AVERAGE FITNESS: {round(s / self.population_size)}")
+            if i % 1000 == 0 or i == 1:
+                if self.agen:
+                    s = sum(h.fitness for h in self.pop)
+                    print(f"GEN {i} AVERAGE FITNESS: {round(s / self.population_size)}")
 
-            if self.sf:
+                if self.plot:
+                    best_data.append(min(self.pop).fitness)
+                    worst_data.append(max(self.pop).fitness)
 
-                if i == 1:
-                    worst_data = []
-                    best_data = []
-                    avg_data = []
-                    f = open(f'{self.cx_algo}_{len(self.pop)}_{self.ngen}.txt', 'w')
-                    if i == 1:
-                        f.write('WORST    BEST    AVERAGE\n')
-
-                    if i % 1000 == 0 or i == 1:
-                        fitness_vals = [self.calc_fitness(h) for h in self.pop]
-                        s = sum(fitness_vals)
-
-                        best_val = min(fitness_vals)
-                        best_data.append(best_val)
-
-                        worst_val = max(fitness_vals)
-                        worst_data.append(worst_val)
-
-                        average_val = round(s / self.population_size)
-                        avg_data.append(average_val)
-
-                        f.write(f'{worst_val}     {best_val}    {average_val}\n')
-
-                    if i == self.ngen:
-                        f.close()
-                else:
-
-                    f = open(f'{self.cx_algo}_{len(self.pop)}_{self.ngen}.txt', 'a')
-                    if i % 1000 == 0 or i == 1:
-                        fitness_vals = [self.calc_fitness(h) for h in self.pop]
-                        s = sum(fitness_vals)
-
-                        best_val = min(fitness_vals)
-                        best_data.append(best_val)
-
-                        worst_val = max(fitness_vals)
-                        worst_data.append(worst_val)
-
-                        average_val = round(s / self.population_size)
-                        avg_data.append(average_val)
-
-                        f.write(f'{worst_val}     {best_val}    {average_val}\n')
-
-                    if i == self.ngen:
-                        plt.plot(worst_data, linestyle="dotted", label="Worst Fitness Values")
-                        plt.plot(best_data, linestyle="dotted", label="Best Fitness Values")
-                        plt.plot(avg_data, linestyle="dotted", label="Average Fitness Values")
-                        plt.title(f'{self.cx_algo}_{len(self.pop)}_{self.ngen}_graph')
-                        plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0)
-                        plt.xlabel("Fitness")
-                        plt.ylabel("Generations")
-                        plt.savefig(f'{self.cx_algo}_{len(self.pop)}_{self.ngen}_graphs.png')
-                        plt.show()
-                        print('saving')
-                        f.close()
+                    average_val = round(sum(self.pop) / self.population_size)
+                    avg_data.append(average_val)
 
         # Find the closest value to the optimal fitness (in case we don't find a solution)
-        closest = self._get_value_and_remove(self.pop, self.maximize_fitness)
+        closest = self._get_value_and_remove(self.pop)
         end = time.process_time() - t
 
-        return self._create_solution(indiv if found else closest, end)
+        if self.plot:
+            plt.plot(worst_data, linestyle="dotted", label="Worst Fitness Values")
+            plt.plot(best_data, linestyle="dotted", label="Best Fitness Values")
+            plt.plot(avg_data, linestyle="dotted", label="Average Fitness Values")
+            plt.title(f'{self.cx_algo}_{len(self.pop)}_{self.ngen}_graph')
+            plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0)
+            plt.xlabel("Fitness")
+            plt.ylabel("Generations")
 
-    def _create_solution(self, individual, comp_time) -> dict:
+        return self._create_solution(indiv if found else closest, end, plt)
+
+    def _create_solution(self, individual, comp_time, plot) -> dict:
         """
         Creates a dictionary with all of the information about the solution or closest solution
         that was found in the EA.
-        :param individual: The individual that was matched as the solution or closest solution
+        :param individual: The chromosome that was matched as the solution or closest solution
         :param comp_time: The computation time of the algorithm
         :return: A dictionary with the information
         """
         partitioned = self.partition_routes(individual)
         return {
             "best_individual": partitioned,
-            "best_individual_fitness": self.calc_fitness(individual),
+            "best_individual_fitness": individual.fitness,
             "name": type(self).__name__,
             "problem_set_name": self.problem_set_name,
             "problem_set_optimal": self.optimal_fitness,
@@ -271,5 +242,6 @@ class CVRP:
             "cxpb": self.cxpb,
             "mutpb": self.mutpb,
             "cx_algorithm": self.cx_algo,
-            "mut_algorithm": self.mt_algo
+            "mut_algorithm": self.mt_algo,
+            "mat_plot": plot
         }
