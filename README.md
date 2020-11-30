@@ -45,8 +45,8 @@ To specify arguments apart from default, view the optional arguments by running 
 `python driver.py --help`
 
 ```
-usage: driver.py [-h] [-f] [-p] [-s] [-g] [-m] [-c] [-r] [-o]
-                 [--brxo | --cxo | --erxo | --oxo] [-i ] [-P] [-A]
+usage: driver.py [-h] [-f] [-p] [-s] [-g] [-m] [-c] [-r]
+                 [--brxo | --cxo | --erxo | --oxo] [-i ] [-P] [-A] [-S] [-M]
 
 Runs the CVRP with any of the optional arguments
 
@@ -58,7 +58,6 @@ optional arguments:
   -g , --ngen         the generation size
   -m , --mutpb        the mutation probability
   -c , --cxpb         the crossover probability
-  -S, --save          saves the fitness values every 1000 generations to a file
   -r , --run          the number of times to run the problem
   --brxo              use best route crossover
   --cxo               use cycle crossover
@@ -67,4 +66,6 @@ optional arguments:
   -i [], --indent []  the indentation amount of the result string
   -P, --pgen          prints the current generation
   -A, --agen          prints the average fitness every 1000 generations
+  -S, --save          saves the results to a file
+  -M, --plot          plot average fitness across generations with matplotlib
 ```
