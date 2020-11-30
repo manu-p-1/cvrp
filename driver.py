@@ -105,17 +105,17 @@ def main():
                 agen=args.agen,
                 plot=args.plot)
 
-    runs = {"DATA": {}}
+    runs = {"RUNS": {}}
     for i in range(1, runtime + 1):
         result = cvrp.run()
-        runs["DATA"][i] = result
+        runs["RUNS"][i] = result
 
         print(f"\n\n============END RUN {i}============\n\n")
 
     print("...Run Complete")
-    runs['BEST_RUN'] = min(runs['DATA'], key=lambda run: runs['DATA'][run]['best_individual_fitness'])
-    runs['WORST_RUN'] = max(runs['DATA'], key=lambda run: runs['DATA'][run]['best_individual_fitness'])
-    runs["AVG_FITNESS"] = sum(v['best_individual_fitness'] for v in runs['DATA'].values()) / len(runs['DATA'].keys())
+    runs['BEST_RUN'] = min(runs['RUNS'], key=lambda run: runs['RUNS'][run]['best_individual_fitness'])
+    runs['WORST_RUN'] = max(runs['RUNS'], key=lambda run: runs['RUNS'][run]['best_individual_fitness'])
+    runs["AVG_FITNESS"] = sum(v['best_individual_fitness'] for v in runs['RUNS'].values()) / len(runs['RUNS'].keys())
 
     js_res = json.dumps(obj=runs,
                         cls=BuildingEncoder,
@@ -125,10 +125,12 @@ def main():
     if args.save:
         with open(f'results/{cvrp.cx_algo}_{cvrp.ngen}__{now}.json', 'w+') as fc:
             fc.write(js_res)
+    else:
+        print(js_res)
 
     if args.plot:
-        for k in runs['DATA'].keys():
-            plt = runs['DATA'][k]['mat_plot']
+        for k in runs['RUNS'].keys():
+            plt = runs['RUNS'][k]['mat_plot']
             plt.savefig(f'results/{cvrp.cx_algo}_{cvrp.ngen}_MATPLOT__{now}.png')
 
 
