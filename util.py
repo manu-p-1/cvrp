@@ -5,7 +5,7 @@ Contains classes and function that act as utilities for the main cvrp problem in
 """
 import math
 from json import JSONEncoder
-from typing import Tuple
+from typing import Tuple, List, Union
 
 
 class Building:
@@ -99,7 +99,7 @@ class Building:
         return f"Node: {self.node}, x: {self.x}, y: {self.y}, quant: {self.quant}"
 
     def __repr__(self):
-        return f"util.Building(node: {self.node}, x: {self.x}, y: {self.y}, quant: {self.quant})"
+        return f"util.Building<node: {self.node}, x: {self.x}, y: {self.y}, quant: {self.quant}>"
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -115,7 +115,97 @@ class Building:
 
 class BuildingEncoder(JSONEncoder):
     def default(self, o):
-        return o.__dict__
+        if isinstance(o, Building):
+            return o.__dict__
+
+
+class Individual:
+
+    def __init__(self, genes, fitness: Union[None, float]):
+        self._genes = genes
+        self._fitness = fitness
+
+    @property
+    def genes(self) -> List[Building]:
+        """
+        A getter function to return the capacity of this vehicle
+        :return: The the capacity of this vehicle
+        """
+        return self._genes
+
+    @genes.setter
+    def genes(self, genes: List[Building]) -> None:
+        """
+        A setter function to set the genes for this Individual
+        :param genes: Sets the genes for this Individual
+        :return: None
+        """
+        self._genes = genes
+
+    @property
+    def fitness(self) -> Union[float, None]:
+        """
+        A getter function to return the capacity of this vehicle
+        :return: The the capacity of this vehicle
+        """
+        return self._fitness
+
+    @fitness.setter
+    def fitness(self, fitness: float) -> None:
+        """
+        A setter function to set the fitness for this Individual
+        :param fitness: Sets the fitness for this vehicle
+        :return: None
+        """
+        self._fitness = fitness
+
+    def index(self, allele):
+        return self._genes.index(allele)
+
+    def __str__(self):
+        return f"Genes: {self._genes},\nfitness: {self._fitness}"
+
+    def __repr__(self):
+        return f"util.Individual<genes: {self._genes}, fitness: {self._fitness}>"
+
+    def __iter__(self):
+        return iter(self._genes)
+
+    def __contains__(self, item):
+        return item in self._genes
+
+    def __getitem__(self, item):
+        return self._genes[item]
+
+    def __setitem__(self, key, value):
+        self._genes[key] = value
+
+    def __delitem__(self, key):
+        self.__delattr__(key)
+
+    def __len__(self):
+        return len(self._genes)
+
+    def __eq__(self, other):
+        return self._genes == other.genes
+
+    def __ne__(self, other):
+        return self._genes != other.genes
+
+    def __lt__(self, other):
+        return self._fitness < other.fitness
+
+    def __le__(self, other):
+        return self._fitness <= other.fitness
+
+    def __ge__(self, other):
+        return self._fitness >= other.fitness
+
+    def __gt__(self, other):
+        return self._fitness > other.fitness
+
+    def __radd__(self, other):
+        return other + self._fitness
 
 
 class Vehicle:
