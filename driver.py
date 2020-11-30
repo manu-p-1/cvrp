@@ -47,6 +47,7 @@ if __name__ == '__main__':
     mutpb = 0.15
     cxpb = 0.75
     offspring = 1
+    sf = False
     cx_algo = algorithms.best_route_xo
     mt_algo = algorithms.inversion_mutation
 
@@ -57,7 +58,7 @@ if __name__ == '__main__':
     parser.add_argument("-g", "--ngen", metavar='', type=pos_int, help="the generation size")
     parser.add_argument("-m", "--mutpb", metavar='', type=pos_float, help="the mutation probability")
     parser.add_argument("-c", "--cxpb", metavar='', type=pos_float, help="the crossover probability")
-
+    parser.add_argument("-S","--save", action="store_true", help="saves the fitness values every 1000 generations to a file")
     parser.add_argument("-r", "--run", metavar='', type=int_ge_one, help="the number of times to run the problem")
 
     cx_types = parser.add_mutually_exclusive_group()
@@ -70,14 +71,17 @@ if __name__ == '__main__':
                         help="the indentation amount of the result string")
     parser.add_argument("-P", "--pgen", action='store_true', help="prints the current generation")
     parser.add_argument("-A", "--agen", action='store_true', help="prints the average fitness every 1000 generations")
+    
     args = parser.parse_args()
-
+    print(args)
     p_set = parse_file(args.file) if args.file else parse_file("data/A-n54-k7.ocvrp")
     pop = args.pop if args.pop else pop
     sel = args.sel if args.sel else sel
     ngen = args.ngen if args.ngen else ngen
     mutpb = args.mutpb if args.mutpb else mutpb
+    sf = args.save if args.save else sf
     cxpb = args.cxpb if args.cxpb else cxpb
+    
 
     runtime = args.run if args.run else 1
 
@@ -97,11 +101,12 @@ if __name__ == '__main__':
                 cx_algo=cx_algo,
                 mt_algo=mt_algo,
                 pgen=args.pgen,
-                agen=args.agen)
+                agen=args.agen,
+                sf=sf)
 
     for i in range(runtime):
         result = cvrp.run()
 
-        print(json.dumps(obj=result,
-                         cls=BuildingEncoder,
-                         indent=args.indent))
+        # print(json.dumps(obj=result,
+        #                  cls=BuildingEncoder,
+        #                  indent=args.indent))
