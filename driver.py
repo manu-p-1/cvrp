@@ -59,7 +59,6 @@ if __name__ == '__main__':
     parser.add_argument("-c", "--cxpb", metavar='', type=pos_float, help="the crossover probability")
 
     parser.add_argument("-r", "--run", metavar='', type=int_ge_one, help="the number of times to run the problem")
-    parser.add_argument("-o", "--offspring", metavar='', type=int_ge_one, help="the number of offspring to generate")
 
     cx_types = parser.add_mutually_exclusive_group()
     cx_types.add_argument("--brxo", action='store_true', help="use best route crossover")
@@ -80,7 +79,6 @@ if __name__ == '__main__':
     mutpb = args.mutpb if args.mutpb else mutpb
     cxpb = args.cxpb if args.cxpb else cxpb
 
-    offspring = args.offspring if args.offspring else offspring
     runtime = args.run if args.run else 1
 
     if args.cxo:
@@ -96,7 +94,6 @@ if __name__ == '__main__':
                 ngen=ngen,
                 mutpb=mutpb,
                 cxpb=cxpb,
-                num_offspring=offspring,
                 cx_algo=cx_algo,
                 mt_algo=mt_algo,
                 pgen=args.pgen,
