@@ -200,12 +200,12 @@ class CVRP:
                         fitness_vals = [self.calc_fitness(h) for h in self.pop]
                         s = sum(fitness_vals)
                             
-                        worst_val = min(fitness_vals)
+                        best_val = min(fitness_vals)
+                        best_data.append(best_val)
+
+                        worst_val = max(fitness_vals)
                         worst_data.append(worst_val)
 
-                        best_val = max(fitness_vals)
-                        best_data.append(best_val)
-                        
                         average_val = round(s / self.population_size)
                         avg_data.append(average_val)
 
@@ -220,12 +220,13 @@ class CVRP:
                         fitness_vals = [self.calc_fitness(h) for h in self.pop]
                         s = sum(fitness_vals)
                         
-                        worst_val = min(fitness_vals)
-                        worst_data.append(worst_val)
-                        print('appending')
-                        best_val = max(fitness_vals)
+                        best_val = min(fitness_vals)
                         best_data.append(best_val)
-                        
+
+                        print('appending')
+                        worst_val = max(fitness_vals)
+                        worst_data.append(worst_val)
+
                         average_val = round(s / self.population_size)
                         avg_data.append(average_val)
                             
