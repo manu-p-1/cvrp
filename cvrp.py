@@ -223,7 +223,6 @@ class CVRP:
         :param comp_time: The computation time of the algorithm
         :return: A dictionary with the information
         """
-        print(individual)
         partitioned = self.partition_routes(individual)
         return {
             "best_individual": partitioned,
