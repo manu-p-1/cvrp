@@ -210,7 +210,7 @@ class CVRP:
             plt.plot(worst_data, linestyle="dotted", label="Worst Fitness Values")
             plt.plot(best_data, linestyle="dotted", label="Best Fitness Values")
             plt.plot(avg_data, linestyle="dotted", label="Average Fitness Values")
-            plt.title(f'{self.cx_algo}_{len(self.pop)}_{self.ngen}_graph')
+            plt.title(f'{self.cx_algo}_{self.ngen}_{self.selection_size}_{self.cxpb}_{self.mutpb}__graph')
             plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0)
             plt.xlabel("Generations")
             plt.ylabel("Fitness")
