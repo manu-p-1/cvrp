@@ -212,8 +212,8 @@ class CVRP:
             plt.plot(avg_data, linestyle="dotted", label="Average Fitness Values")
             plt.title(f'{self.cx_algo}_{len(self.pop)}_{self.ngen}_graph')
             plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0)
-            plt.xlabel("Fitness")
-            plt.ylabel("Generations")
+            plt.xlabel("Generations")
+            plt.ylabel("Fitness")
 
         return self._create_solution(indiv if found else closest, end, plt)
 
