@@ -187,10 +187,10 @@ class Individual:
         return len(self._genes)
 
     def __eq__(self, other):
-        return self._genes == other.genes
+        return self._fitness == other.fitness
 
     def __ne__(self, other):
-        return self._genes != other.genes
+        return self._fitness != other.fitness
 
     def __lt__(self, other):
         return self._fitness < other.fitness
