@@ -122,8 +122,13 @@ def main():
                         indent=args.indent)
 
     now = datetime.datetime.now().strftime("%Y%m%d__%I_%M_%S%p")
+    f_name = f'{cvrp.cx_algo}_{cvrp.ngen}__{now}'
     if args.save:
-        with open(f'results/{cvrp.cx_algo}_{cvrp.ngen}__{now}.json', 'w+') as fc:
+
+        if not os.path.isdir('./results'):
+            os.mkdir('./results')
+
+        with open(f'results/{f_name}.json', 'w+') as fc:
             fc.write(js_res)
     else:
         print(js_res)
@@ -131,7 +136,7 @@ def main():
     if args.plot:
         for k in runs['RUNS'].keys():
             plt = runs['RUNS'][k]['mat_plot']
-            plt.savefig(f'results/{cvrp.cx_algo}_{cvrp.ngen}_MATPLOT__{now}.png')
+            plt.savefig(f'results/{f_name}.png')
 
 
 if __name__ == '__main__':
