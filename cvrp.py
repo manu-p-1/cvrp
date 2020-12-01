@@ -20,7 +20,6 @@ class CVRP:
                  agen: bool,
                  cx_algo,
                  mt_algo,
-                 maximize_fitness: bool = False,
                  plot=False):
 
         var_len = len(problem_set["BUILDINGS"])
@@ -44,7 +43,6 @@ class CVRP:
         self.pgen = pgen
         self.agen = agen
         self.plot = plot
-        self.maximize_fitness = maximize_fitness
 
     def calc_fitness(self, individual):
         distance = 0
@@ -94,8 +92,8 @@ class CVRP:
 
         # take_five is the mating pool for this generation
         take_five = r.sample(self.pop, self.selection_size)
-        parent1 = self._get_value_and_remove(take_five)
-        parent2 = self._get_value_and_remove(take_five)
+        parent1 = CVRP._get_and_remove(take_five, True)
+        parent2 = CVRP._get_and_remove(take_five, True)
         return parent1, parent2
 
     def replacement_strat(self, individual: Individual) -> None:
@@ -104,18 +102,16 @@ class CVRP:
         :param individual: The new individual to replace a candidate in the population
         :return: None
         """
-        self._get_value_and_remove(self.pop)
+        self._get_and_remove(self.pop, False)
         self.pop.append(individual)
 
-    def _get_value_and_remove(self, sel_values):
+    @staticmethod
+    def _get_and_remove(sel_values, get_best):
         """
-        A helper method to get and remove an chromosome based on highest fitness level. If the fitness is being
-        maximized, the lower fitness is removed and vice versa.
-        :param sel_values: A chromosome
+        Get the largest fitness in the GA and remove it
         :return: The chromosome with the highest fitness
         """
-
-        if self.maximize_fitness:
+        if get_best:
             val = min(sel_values)
         else:
             val = max(sel_values)
@@ -138,12 +134,12 @@ class CVRP:
         found = False
         indiv = None
 
-        mut_prob = r.choices([True, False], weights=(self.mutpb, 1 - self.mutpb), k=1)[0]
-        cx_prob = r.choices([True, False], weights=(self.cxpb, 1 - self.cxpb), k=1)[0]
-
         worst_data, best_data, avg_data = [], [], []
 
         for i in range(1, self.ngen + 1):
+
+            mut_prob = r.choices([True, False], weights=(self.mutpb, 1 - self.mutpb), k=1)[0]
+            cx_prob = r.choices([True, False], weights=(self.cxpb, 1 - self.cxpb), k=1)[0]
 
             parent1, parent2 = self.select()
             if cx_prob:
@@ -190,20 +186,22 @@ class CVRP:
             if self.pgen:
                 print(f'{i}/{self.ngen}', end='\r')
 
+            min_indv = None
             if i % 1000 == 0 or i == 1:
                 if self.agen:
-                    s = sum(h.fitness for h in self.pop)
-                    print(f"GEN {i} AVERAGE FITNESS: {round(s / self.population_size)}")
+                    min_indv = min(self.pop).fitness
+                    print(f"GEN {i} BEST FITNESS: {min_indv}")
 
                 if self.plot:
-                    best_data.append(min(self.pop).fitness)
+                    min_indv = min(self.pop).fitness if min_indv is None else min_indv
+                    best_data.append(min_indv)
                     worst_data.append(max(self.pop).fitness)
 
                     average_val = round(sum(self.pop) / self.population_size)
                     avg_data.append(average_val)
 
         # Find the closest value to the optimal fitness (in case we don't find a solution)
-        closest = self._get_value_and_remove(self.pop)
+        closest = min(self.pop)
         end = time.process_time() - t
 
         if self.plot:
@@ -225,6 +223,7 @@ class CVRP:
         :param comp_time: The computation time of the algorithm
         :return: A dictionary with the information
         """
+        print(individual)
         partitioned = self.partition_routes(individual)
         return {
             "best_individual": partitioned,
