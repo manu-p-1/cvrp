@@ -160,8 +160,16 @@ class CVRP:
                 child1 = parent1
                 child2 = parent2
 
-            child1 = algorithms.inversion_mutation(child1) if mut_prob else child1
-            child2 = algorithms.inversion_mutation(child2) if mut_prob else child2
+            if mut_prob:
+                if self.mt_algo == 'inversion_mut':
+                    child1 = algorithms.inversion_mut(child1)
+                    child2 = algorithms.inversion_mut(child2)
+                elif self.mt_algo == 'swap_mut':
+                    child1 = algorithms.swap_mut(child1)
+                    child2 = algorithms.swap_mut(child2)
+                else:
+                    child1 = algorithms.gvr_scramble_mut(child1, self)
+                    child2 = algorithms.gvr_scramble_mut(child2, self)
 
             """
             Only calculate fitness if a crossover or mutation occurred, or if the xover did not
@@ -184,18 +192,23 @@ class CVRP:
             self.replacement_strat(child2)
 
             if self.pgen:
-                print(f'{i}/{self.ngen}', end='\r')
+                print(f'GEN: {i}/{self.ngen}', end='\r')
 
-            min_indv = None
+            min_indv, max_indv = None, None
             if i % 1000 == 0 or i == 1:
                 if self.agen:
                     min_indv = min(self.pop).fitness
+                    max_indv = max(self.pop).fitness
+
+                    print(f"UNIQUE FITNESSES: {len(set(self.pop))}/{self.population_size}")
                     print(f"GEN {i} BEST FITNESS: {min_indv}")
+                    print(f"GEN {i} WORST FITNESS: {max_indv}\n\n")
 
                 if self.plot:
                     min_indv = min(self.pop).fitness if min_indv is None else min_indv
+                    max_indv = max(self.pop).fitness if max_indv is None else max_indv
                     best_data.append(min_indv)
-                    worst_data.append(max(self.pop).fitness)
+                    worst_data.append(max_indv)
 
                     average_val = round(sum(self.pop) / self.population_size)
                     avg_data.append(average_val)
@@ -204,18 +217,9 @@ class CVRP:
         closest = min(self.pop)
         end = time.process_time() - t
 
-        if self.plot:
-            plt.plot(worst_data, linestyle="dotted", label="Worst Fitness Values")
-            plt.plot(best_data, linestyle="dotted", label="Best Fitness Values")
-            plt.plot(avg_data, linestyle="dotted", label="Average Fitness Values")
-            plt.title(f'{self.cx_algo}_{self.ngen}_{self.selection_size}_{self.cxpb}_{self.mutpb}__graph')
-            plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0)
-            plt.xlabel("Generations")
-            plt.ylabel("Fitness")
+        return self._create_solution(indiv if found else closest, end, best_data, worst_data, avg_data)
 
-        return self._create_solution(indiv if found else closest, end, plt)
-
-    def _create_solution(self, individual, comp_time, plot) -> dict:
+    def _create_solution(self, individual, comp_time, best_data, worst_data, avg_data) -> dict:
         """
         Creates a dictionary with all of the information about the solution or closest solution
         that was found in the EA.
@@ -223,7 +227,19 @@ class CVRP:
         :param comp_time: The computation time of the algorithm
         :return: A dictionary with the information
         """
+
+        if self.plot:
+            plt.figure(figsize=(9, 7), dpi=200)
+            plt.plot(worst_data, linestyle="dotted", label="Worst Fitness Values")
+            plt.plot(best_data, linestyle="dotted", label="Best Fitness Values")
+            plt.plot(avg_data, linestyle="dotted", label="Average Fitness Values")
+            plt.title(f'{self.cx_algo}_{self.ngen}_{self.selection_size}_{self.cxpb}_{self.mutpb}__graph')
+            plt.legend(bbox_to_anchor=(0.98, 0.98), borderaxespad=0)
+            plt.xlabel("Generations")
+            plt.ylabel("Fitness")
+
         partitioned = self.partition_routes(individual)
+
         return {
             "best_individual": partitioned,
             "best_individual_fitness": individual.fitness,
@@ -241,5 +257,5 @@ class CVRP:
             "mutpb": self.mutpb,
             "cx_algorithm": self.cx_algo,
             "mut_algorithm": self.mt_algo,
-            "mat_plot": plot
+            "mat_plot": plt
         }
