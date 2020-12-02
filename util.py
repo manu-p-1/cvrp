@@ -162,6 +162,12 @@ class Individual:
     def index(self, allele):
         return self._genes.index(allele)
 
+    def __key(self) -> Tuple:
+        return (self._fitness,)
+
+    def __hash__(self):
+        return hash(self.__key())
+
     def __str__(self):
         return f"Genes: {self._genes},\nfitness: {self._fitness}"
 
