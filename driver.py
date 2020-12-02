@@ -50,7 +50,7 @@ def main():
     mutpb = 0.15
     cxpb = 0.75
     cx_algo = algorithms.best_route_xo
-    mt_algo = algorithms.inversion_mutation
+    mt_algo = algorithms.inversion_mut
 
     parser = argparse.ArgumentParser(description="Runs the CVRP with any of the optional arguments")
     parser.add_argument("-f", "--file", metavar='', type=str, help="the path to the problem set")
@@ -62,10 +62,15 @@ def main():
     parser.add_argument("-r", "--run", metavar='', type=int_ge_one, help="the number of times to run the problem")
 
     cx_types = parser.add_mutually_exclusive_group()
-    cx_types.add_argument("--brxo", action='store_true', help="use best route crossover")
-    cx_types.add_argument("--cxo", action='store_true', help="use cycle crossover")
-    cx_types.add_argument("--erxo", action='store_true', help="use edge recombination crossover")
-    cx_types.add_argument("--oxo", action='store_true', help="use order crossover")
+    cx_types.add_argument("-B", "--brxo", action='store_true', help="use best route crossover")
+    cx_types.add_argument("-C", "--cxo", action='store_true', help="use cycle crossover")
+    cx_types.add_argument("-E", "--erxo", action='store_true', help="use edge recombination crossover")
+    cx_types.add_argument("-O", "--oxo", action='store_true', help="use order crossover")
+
+    mt_types = parser.add_mutually_exclusive_group()
+    mt_types.add_argument("-I", "--vmt", action='store_true', help="use inversion mutation")
+    mt_types.add_argument("-W", "--swmt", action='store_true', help="use swap mutation")
+    mt_types.add_argument("-G", "--gvmt", action='store_true', help="use GVR based scramble mutation")
 
     parser.add_argument("-i", "--indent", metavar='', nargs="?", type=int_ge_one, const=2,
                         help="the indentation amount of the result string")
@@ -92,6 +97,11 @@ def main():
         cx_algo = algorithms.edge_recomb_xo
     elif args.oxo:
         cx_algo = algorithms.order_xo
+
+    if args.swmt:
+        mt_algo = algorithms.swap_mut
+    elif args.gvmt:
+        mt_algo = algorithms.gvr_scramble_mut
 
     cvrp = CVRP(problem_set=p_set,
                 population_size=pop,
@@ -136,7 +146,7 @@ def main():
     if args.plot:
         for k in runs['RUNS'].keys():
             plt = runs['RUNS'][k]['mat_plot']
-            plt.savefig(f'results/{f_name}.png')
+            plt.savefig(f'results/{f_name}.jpg')
 
 
 if __name__ == '__main__':
