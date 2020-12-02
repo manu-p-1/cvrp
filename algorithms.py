@@ -248,7 +248,7 @@ def order_xo(ind1: Individual, ind2: Individual) -> Individual:
     return Individual(child, None)
 
 
-def inversion_mutation(child: Individual) -> Individual:
+def inversion_mut(child: Individual) -> Individual:
     """
     Mutates a child's genes by choosing two random indices between 0 and len(chromosome) - 1.
     From a programming perspective, two indices are chosen: one between 0 and the list midpoint and one
@@ -268,6 +268,26 @@ def inversion_mutation(child: Individual) -> Individual:
         idx2 -= 1
 
     return child
+
+
+def swap_mut(child: Individual) -> Individual:
+    idx1 = r.randint(0, len(child) - 1)
+    idx2 = r.randint(0, len(child) - 1)
+    _swap(child, idx1, idx2)
+
+    return child
+
+
+def gvr_scramble_mut(child, cvrp):
+    ind1_partitioned = cvrp.partition_routes(child)
+
+    # choose a random route from chromosome 1
+    route_number = r.choice(list(ind1_partitioned.keys()))
+    r.shuffle(ind1_partitioned[route_number])
+
+    new_genes = cvrp.de_partition_routes(ind1_partitioned)
+
+    return Individual(new_genes, cvrp.calc_fitness(new_genes))
 
 
 def _swap(ll: Individual, idx1: int, idx2: int) -> None:
