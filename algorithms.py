@@ -283,7 +283,13 @@ def gvr_scramble_mut(child, cvrp):
 
     # choose a random route from chromosome 1
     route_number = r.choice(list(ind1_partitioned.keys()))
-    r.shuffle(ind1_partitioned[route_number])
+
+    max_list = ind1_partitioned[0]
+    cur_max = len(ind1_partitioned[0])
+    for route_num in ind1_partitioned.keys():
+        if len(ind1_partitioned[route_num]) > cur_max:
+            max_list = route_num
+    r.shuffle(ind1_partitioned[max_list])
 
     new_genes = cvrp.de_partition_routes(ind1_partitioned)
 
