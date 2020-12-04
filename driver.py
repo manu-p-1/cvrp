@@ -44,9 +44,9 @@ def int_ge_one(value):
 
 
 def main():
-    pop = 200
+    pop = 600
     sel = 5
-    ngen = 50_000
+    ngen = 100_000
     mutpb = 0.15
     cxpb = 0.75
     cx_algo = algorithms.best_route_xo
