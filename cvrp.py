@@ -1,3 +1,5 @@
+import enum
+import math
 import random as r
 import time
 from typing import Dict, Tuple
@@ -8,9 +10,13 @@ import algorithms as alg
 from util import Building, Individual
 
 
+class ReplStrat(enum.Enum):
+    RAND = enum.auto()
+    BEST = enum.auto()
+    WORST = enum.auto()
+
+
 class CVRP:
-    DIV_THRESH_LB = 5
-    DIV_THRESH_UP = 40
 
     def __init__(self, problem_set: dict,
                  population_size: int,
@@ -24,7 +30,7 @@ class CVRP:
                  mt_algo,
                  plot=False):
 
-        var_len = len(problem_set["BUILDINGS"])
+        self.var_len = len(problem_set["BUILDINGS"])
         self.depot = problem_set["DEPOT"]
         self.vehicle_cap = problem_set["CAPACITY"]
         self.optimal_fitness = problem_set["OPTIMAL"]
@@ -32,7 +38,7 @@ class CVRP:
 
         self.pop = []
         for _ in range(population_size):
-            rpmt = r.sample(problem_set['BUILDINGS'], var_len)
+            rpmt = r.sample(problem_set['BUILDINGS'], self.var_len)
             self.pop.append(Individual(rpmt, self.calc_fitness(rpmt)))
 
         self.population_size = population_size
@@ -85,7 +91,7 @@ class CVRP:
             ll.extend(v)
         return ll
 
-    def select(self, bad) -> Tuple[Individual, Individual]:
+    def select(self) -> Tuple[Individual, Individual]:
         """
         For selection, five individuals are randomly sampled. Of the five, the two with the best selected
         are chosen to become parents. We employ a form of tournament selection here.
@@ -93,37 +99,32 @@ class CVRP:
         """
 
         # take_five is the mating pool for this generation
-        if not bad:
-            take_five = r.sample(self.pop, self.selection_size)
-        else:
-            i = r.choice(self.pop)
-            take_five = [alg.gvr_scramble_mut(i, self) for _ in range(self.selection_size)]
+        take_five = r.sample(self.pop, self.selection_size)
 
-        parent1 = CVRP._get_and_remove(take_five, True)
-        parent2 = CVRP._get_and_remove(take_five, True)
+        parent1 = self._get_and_remove(take_five, ReplStrat.BEST)
+        parent2 = self._get_and_remove(take_five, ReplStrat.BEST)
 
         return parent1, parent2
 
-    def replacement_strat(self, individual: Individual) -> None:
-        """
-        Replaces the two worst individuals in the population with two new ones.
-        :param individual: The new individual to replace a candidate in the population
-        :return: None
-        """
-        self._get_and_remove(self.pop, False)
-        self.pop.append(individual)
-
-    def brute_strat(self, individual: Individual) -> None:
-        self.pop.remove(r.choice(self.pop))
+    def replacement_strat(self, individual: Individual, rs) -> None:
+        self._get_and_remove(self.pop, rs)
         self.pop.append(individual)
 
     @staticmethod
-    def _get_and_remove(sel_values, get_best):
+    def _get_nworst(sel_values, n):
+        v = sel_values[:]
+        v.sort()
+        return v[-n:]
+
+    @staticmethod
+    def _get_and_remove(sel_values, rs):
         """
         Get the largest fitness in the GA and remove it
         :return: The chromosome with the highest fitness
         """
-        if get_best:
+        if rs == rs.RAND:
+            val = r.choice(sel_values)
+        elif rs == rs.BEST:
             val = min(sel_values)
         else:
             val = max(sel_values)
@@ -143,21 +144,24 @@ class CVRP:
 
         print(f"Running {self.ngen} generation(s)...")
 
+        min_indv, max_indv, avg_fit = None, None, None
+        worst_data, best_data, avg_data = [], [], []
+
+        div_thresh_lb = math.ceil(0.01 * self.population_size)
+        div_thresh_ub = math.ceil(0.05 * self.population_size)
+        div_picking_rng = div_thresh_ub * 10
         orig_mutpb = self.mutpb
-        bad = False
 
         t = time.process_time()
         found = False
         indiv = None
-
-        worst_data, best_data, avg_data = [], [], []
 
         for i in range(1, self.ngen + 1):
 
             mut_prob = r.choices([True, False], weights=(self.mutpb, 1 - self.mutpb), k=1)[0]
             cx_prob = r.choices([True, False], weights=(self.cxpb, 1 - self.cxpb), k=1)[0]
 
-            parent1, parent2 = self.select(bad)
+            parent1, parent2 = self.select()
             if cx_prob:
                 if self.cx_algo == 'best_route_xo':
                     child1 = alg.best_route_xo(parent1, parent2, self)
@@ -204,22 +208,24 @@ class CVRP:
                 found = True
                 break
 
-            self.replacement_strat(child1)
-            self.replacement_strat(child2)
+            self.replacement_strat(child1, ReplStrat.WORST)
+            self.replacement_strat(child2, ReplStrat.WORST)
 
             if self.pgen:
                 print(f'GEN: {i}/{self.ngen}', end='\r')
 
-            min_indv, max_indv, uq_indv = None, None, len(set(self.pop))
+            uq_indv = len(set(self.pop))
 
-            if i % 1000 == 0 or i == 1:
+            if i % 500 == 0 or i == 1:
                 if self.agen:
                     min_indv = min(self.pop).fitness
                     max_indv = max(self.pop).fitness
+                    avg_fit = round(sum(self.pop) / self.population_size)
 
-                    print(f"UNIQUE FITNESSES: {len(set(self.pop))}/{self.population_size}")
+                    print(f"UNIQUE FITNESS CNT: {uq_indv}/{self.population_size}")
                     print(f"GEN {i} BEST FITNESS: {min_indv}")
-                    print(f"GEN {i} WORST FITNESS: {max_indv}\n\n")
+                    print(f"GEN {i} WORST FITNESS: {max_indv}")
+                    print(f"GEN {i} AVG FITNESS: {avg_fit}\n\n")
 
                 if self.plot:
                     min_indv = min(self.pop).fitness if min_indv is None else min_indv
@@ -227,15 +233,24 @@ class CVRP:
                     best_data.append(min_indv)
                     worst_data.append(max_indv)
 
-                    average_val = round(sum(self.pop) / self.population_size)
-                    avg_data.append(average_val)
+                    avg_fit = round(sum(self.pop) / self.population_size) if avg_fit is None else avg_fit
+                    avg_data.append(avg_fit)
 
-            if uq_indv <= CVRP.DIV_THRESH_LB:
+            if i % 5000 == 0 and uq_indv <= div_thresh_lb:
                 self.mutpb = 1
-                bad = True
-            elif uq_indv >= CVRP.DIV_THRESH_UP:
-                bad = False
-                self.mutpb = orig_mutpb
+                worst = self._get_nworst(self.pop, div_picking_rng)
+
+                for k in range(div_picking_rng):
+                    c = max(self.pop)
+                    rsamp = alg.gvr_scramble_mut(c, self)  # Creates a random permutation of the chosen indiv
+                    i = Individual(rsamp, self.calc_fitness(rsamp))
+
+                    self.pop.remove(worst[k])
+                    self.pop.append(i)
+
+            elif uq_indv > div_thresh_lb:
+                if self.mutpb != orig_mutpb:
+                    self.mutpb = orig_mutpb
 
         # Find the closest value to the optimal fitness (in case we don't find a solution)
         closest = min(self.pop)
@@ -273,7 +288,7 @@ class CVRP:
             "time": f"{comp_time} seconds",
             "vehicles": len(partitioned.keys()),
             "vehicle_capacity": self.vehicle_cap,
-            "dimension": len(individual),
+            "dimension": self.var_len,
             "population_size": self.population_size,
             "selection_size": self.selection_size,
             "generations": self.ngen,
