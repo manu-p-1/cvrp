@@ -92,13 +92,16 @@ class CVRP:
         """
 
         # take_five is the mating pool for this generation
-        take_five = r.sample(self.pop, self.selection_size)
         if not bad:
-            parent1 = CVRP._get_and_remove(take_five, True)
-            parent2 = CVRP._get_and_remove(take_five, True)
+            take_five = r.sample(self.pop, self.selection_size)
         else:
-            parent1 = CVRP._get_and_remove(take_five, False)
-            parent2 = CVRP._get_and_remove(take_five, False)
+            take_five = set()
+            for i in range(self.selection_size + CVRP.DIVERSITY_THRES):
+                take_five.add(max((v for v in self.pop if v not in take_five)))
+
+        parent1 = CVRP._get_and_remove(take_five, True)
+        parent2 = CVRP._get_and_remove(take_five, True)
+
         return parent1, parent2
 
     def replacement_strat(self, individual: Individual) -> None:
