@@ -147,9 +147,8 @@ class CVRP:
         min_indv, max_indv, avg_fit = None, None, None
         worst_data, best_data, avg_data = [], [], []
 
-        div_thresh_lb = math.ceil(0.01 * self.population_size)
-        div_thresh_ub = math.ceil(0.05 * self.population_size)
-        div_picking_rng = div_thresh_ub * 10
+        div_thresh_bnd = math.ceil(0.01 * self.population_size)
+        div_picking_rng = round(0.75 * self.population_size)
         orig_mutpb = self.mutpb
 
         t = time.process_time()
@@ -236,20 +235,28 @@ class CVRP:
                     avg_fit = round(sum(self.pop) / self.population_size) if avg_fit is None else avg_fit
                     avg_data.append(avg_fit)
 
-            if i % 5000 == 0 and uq_indv <= div_thresh_lb:
+            if i % 5000 == 0 and uq_indv <= div_thresh_bnd:
+                print("===============DIVERSITY MAINT===============") if self.agen else None
                 self.mutpb = 1
                 worst = self._get_nworst(self.pop, div_picking_rng)
 
                 for k in range(div_picking_rng):
                     c = max(self.pop)
-                    rsamp = alg.gvr_scramble_mut(c, self)  # Creates a random permutation of the chosen indiv
+                    if self.mt_algo == 'inversion_mut':
+                        rsamp = alg.inversion_mut(c)
+                    elif self.mt_algo == 'swap_mut':
+                        rsamp = alg.swap_mut(c)
+                    else:
+                        rsamp = alg.gvr_scramble_mut(c, self)
+
                     i = Individual(rsamp, self.calc_fitness(rsamp))
 
                     self.pop.remove(worst[k])
                     self.pop.append(i)
 
-            elif uq_indv > div_thresh_lb:
+            elif uq_indv > div_thresh_bnd:
                 if self.mutpb != orig_mutpb:
+                    print("=================NORMAL STATE================") if self.agen else None
                     self.mutpb = orig_mutpb
 
         # Find the closest value to the optimal fitness (in case we don't find a solution)
