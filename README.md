@@ -35,11 +35,13 @@ into its best known solution.
 
 ### Execution
 Running `python driver.py` runs the program with default arguments:
-- Population Size: 200
+- Population Size: 600
 - Selection Size: 5
-- Number of Generations: 50000
+- Number of Generations: 100000
 - Mutation Probability: 0.15
-- Crossover Probability: 0.75 
+- Crossover Probability: 0.75
+- Crossover: Best Route CXO
+- Mutation: Inversion MUT 
 
 To specify arguments apart from default, view the optional arguments by running `python driver.py -h` or
 `python driver.py --help`
