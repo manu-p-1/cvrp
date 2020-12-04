@@ -4,12 +4,13 @@ from typing import Dict, Tuple
 
 import matplotlib.pyplot as plt
 
-import algorithms
+import algorithms as alg
 from util import Building, Individual
 
 
 class CVRP:
-    DIVERSITY_THRES = 5
+    DIV_THRESH_LB = 5
+    DIV_THRESH_UP = 40
 
     def __init__(self, problem_set: dict,
                  population_size: int,
@@ -95,9 +96,8 @@ class CVRP:
         if not bad:
             take_five = r.sample(self.pop, self.selection_size)
         else:
-            take_five = set()
-            for i in range(self.selection_size + CVRP.DIVERSITY_THRES):
-                take_five.add(max((v for v in self.pop if v not in take_five)))
+            i = r.choice(self.pop)
+            take_five = [alg.gvr_scramble_mut(i, self) for _ in range(self.selection_size)]
 
         parent1 = CVRP._get_and_remove(take_five, True)
         parent2 = CVRP._get_and_remove(take_five, True)
@@ -160,32 +160,32 @@ class CVRP:
             parent1, parent2 = self.select(bad)
             if cx_prob:
                 if self.cx_algo == 'best_route_xo':
-                    child1 = algorithms.best_route_xo(parent1, parent2, self)
-                    child2 = algorithms.best_route_xo(parent2, parent1, self)
+                    child1 = alg.best_route_xo(parent1, parent2, self)
+                    child2 = alg.best_route_xo(parent2, parent1, self)
                 elif self.cx_algo == 'cycle_xo':
-                    cxo = algorithms.cycle_xo(parent1, parent2, self)
+                    cxo = alg.cycle_xo(parent1, parent2, self)
                     child1 = cxo['o-child']
                     child2 = cxo['e-child']
                 elif self.cx_algo == 'edge_recomb_xo':
-                    child1 = algorithms.edge_recomb_xo(parent1, parent2)
-                    child2 = algorithms.edge_recomb_xo(parent2, parent1)
+                    child1 = alg.edge_recomb_xo(parent1, parent2)
+                    child2 = alg.edge_recomb_xo(parent2, parent1)
                 else:
-                    child1 = algorithms.order_xo(parent1, parent2)
-                    child2 = algorithms.order_xo(parent2, parent1)
+                    child1 = alg.order_xo(parent1, parent2)
+                    child2 = alg.order_xo(parent2, parent1)
             else:
                 child1 = parent1
                 child2 = parent2
 
             if mut_prob:
                 if self.mt_algo == 'inversion_mut':
-                    child1 = algorithms.inversion_mut(child1)
-                    child2 = algorithms.inversion_mut(child2)
+                    child1 = alg.inversion_mut(child1)
+                    child2 = alg.inversion_mut(child2)
                 elif self.mt_algo == 'swap_mut':
-                    child1 = algorithms.swap_mut(child1)
-                    child2 = algorithms.swap_mut(child2)
+                    child1 = alg.swap_mut(child1)
+                    child2 = alg.swap_mut(child2)
                 else:
-                    child1 = algorithms.gvr_scramble_mut(child1, self)
-                    child2 = algorithms.gvr_scramble_mut(child2, self)
+                    child1 = alg.gvr_scramble_mut(child1, self)
+                    child2 = alg.gvr_scramble_mut(child2, self)
 
             """
             Only calculate fitness if a crossover or mutation occurred, or if the xover did not
@@ -230,10 +230,10 @@ class CVRP:
                     average_val = round(sum(self.pop) / self.population_size)
                     avg_data.append(average_val)
 
-            if uq_indv <= CVRP.DIVERSITY_THRES:
+            if uq_indv <= CVRP.DIV_THRESH_LB:
                 self.mutpb = 1
                 bad = True
-            elif self.mutpb != orig_mutpb:
+            elif uq_indv >= CVRP.DIV_THRESH_UP:
                 bad = False
                 self.mutpb = orig_mutpb
 
