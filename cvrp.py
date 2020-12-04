@@ -9,6 +9,7 @@ from util import Building, Individual
 
 
 class CVRP:
+    DIVERSITY_THRES = 5
 
     def __init__(self, problem_set: dict,
                  population_size: int,
@@ -105,6 +106,10 @@ class CVRP:
         self._get_and_remove(self.pop, False)
         self.pop.append(individual)
 
+    def brute_strat(self, individual: Individual) -> None:
+        self.pop.remove(r.choice(self.pop))
+        self.pop.append(individual)
+
     @staticmethod
     def _get_and_remove(sel_values, get_best):
         """
@@ -130,6 +135,7 @@ class CVRP:
         """
 
         print(f"Running {self.ngen} generation(s)...")
+        orig_mutpb = self.mutpb
         t = time.process_time()
         found = False
         indiv = None
@@ -194,7 +200,8 @@ class CVRP:
             if self.pgen:
                 print(f'GEN: {i}/{self.ngen}', end='\r')
 
-            min_indv, max_indv = None, None
+            min_indv, max_indv, uq_indv = None, None, len(set(self.pop))
+
             if i % 1000 == 0 or i == 1:
                 if self.agen:
                     min_indv = min(self.pop).fitness
@@ -212,6 +219,11 @@ class CVRP:
 
                     average_val = round(sum(self.pop) / self.population_size)
                     avg_data.append(average_val)
+
+            if uq_indv <= CVRP.DIVERSITY_THRES:
+                self.mutpb = 1
+            elif self.mutpb != orig_mutpb:
+                self.mutpb = orig_mutpb
 
         # Find the closest value to the optimal fitness (in case we don't find a solution)
         closest = min(self.pop)
