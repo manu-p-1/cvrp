@@ -3,6 +3,7 @@ util.py
 
 Contains classes and function that act as utilities for the main cvrp problem in cvrp.py
 """
+import collections
 import math
 from json import JSONEncoder
 from typing import Tuple, List, Union
@@ -119,7 +120,7 @@ class BuildingEncoder(JSONEncoder):
             return o.__dict__
 
 
-class Individual:
+class Individual(collections.abc.Sequence):
 
     def __init__(self, genes, fitness: Union[None, float]):
         self._genes = genes
@@ -159,9 +160,6 @@ class Individual:
         """
         self._fitness = fitness
 
-    def index(self, allele):
-        return self._genes.index(allele)
-
     def __key(self) -> Tuple:
         return (self._fitness,)
 
@@ -175,7 +173,8 @@ class Individual:
         return f"util.Individual<genes: {self._genes}, fitness: {self._fitness}>"
 
     def __iter__(self):
-        return iter(self._genes)
+        for g in self._genes:
+            yield g
 
     def __contains__(self, item):
         return item in self._genes
