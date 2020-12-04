@@ -84,7 +84,7 @@ class CVRP:
             ll.extend(v)
         return ll
 
-    def select(self) -> Tuple[Individual, Individual]:
+    def select(self, bad) -> Tuple[Individual, Individual]:
         """
         For selection, five individuals are randomly sampled. Of the five, the two with the best selected
         are chosen to become parents. We employ a form of tournament selection here.
@@ -93,8 +93,12 @@ class CVRP:
 
         # take_five is the mating pool for this generation
         take_five = r.sample(self.pop, self.selection_size)
-        parent1 = CVRP._get_and_remove(take_five, True)
-        parent2 = CVRP._get_and_remove(take_five, True)
+        if not bad:
+            parent1 = CVRP._get_and_remove(take_five, True)
+            parent2 = CVRP._get_and_remove(take_five, True)
+        else:
+            parent1 = CVRP._get_and_remove(take_five, False)
+            parent2 = CVRP._get_and_remove(take_five, False)
         return parent1, parent2
 
     def replacement_strat(self, individual: Individual) -> None:
@@ -135,7 +139,10 @@ class CVRP:
         """
 
         print(f"Running {self.ngen} generation(s)...")
+
         orig_mutpb = self.mutpb
+        bad = False
+
         t = time.process_time()
         found = False
         indiv = None
@@ -147,7 +154,7 @@ class CVRP:
             mut_prob = r.choices([True, False], weights=(self.mutpb, 1 - self.mutpb), k=1)[0]
             cx_prob = r.choices([True, False], weights=(self.cxpb, 1 - self.cxpb), k=1)[0]
 
-            parent1, parent2 = self.select()
+            parent1, parent2 = self.select(bad)
             if cx_prob:
                 if self.cx_algo == 'best_route_xo':
                     child1 = algorithms.best_route_xo(parent1, parent2, self)
@@ -222,7 +229,9 @@ class CVRP:
 
             if uq_indv <= CVRP.DIVERSITY_THRES:
                 self.mutpb = 1
+                bad = True
             elif self.mutpb != orig_mutpb:
+                bad = False
                 self.mutpb = orig_mutpb
 
         # Find the closest value to the optimal fitness (in case we don't find a solution)
