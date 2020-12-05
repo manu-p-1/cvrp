@@ -145,11 +145,10 @@ class CVRP:
         print(f"Running {self.ngen} generation(s)...")
 
         min_indv, max_indv, avg_fit = None, None, None
-        worst_data, best_data, avg_data = [], [], []
+        best_data, avg_data = [], []
 
-        div_thresh_bnd = math.ceil(0.01 * self.population_size)
+        div_thresh_lb = math.ceil(0.01 * self.population_size)
         div_picking_rng = round(0.75 * self.population_size)
-        orig_mutpb = self.mutpb
 
         t = time.process_time()
         found = False
@@ -215,7 +214,7 @@ class CVRP:
 
             uq_indv = len(set(self.pop))
 
-            if i % 500 == 0 or i == 1:
+            if i % 1000 == 0 or i == 1:
                 if self.agen:
                     min_indv = min(self.pop).fitness
                     max_indv = max(self.pop).fitness
@@ -228,44 +227,35 @@ class CVRP:
 
                 if self.plot:
                     min_indv = min(self.pop).fitness if min_indv is None else min_indv
-                    max_indv = max(self.pop).fitness if max_indv is None else max_indv
                     best_data.append(min_indv)
-                    worst_data.append(max_indv)
 
                     avg_fit = round(sum(self.pop) / self.population_size) if avg_fit is None else avg_fit
                     avg_data.append(avg_fit)
 
-            if i % 5000 == 0 and uq_indv <= div_thresh_bnd:
+            if i % 10000 == 0 and uq_indv <= div_thresh_lb:
                 print("===============DIVERSITY MAINT===============") if self.agen else None
-                self.mutpb = 1
                 worst = self._get_nworst(self.pop, div_picking_rng)
 
                 for k in range(div_picking_rng):
-                    c = max(self.pop)
+                    c = min(self.pop)
                     if self.mt_algo == 'inversion_mut':
                         rsamp = alg.inversion_mut(c)
                     elif self.mt_algo == 'swap_mut':
                         rsamp = alg.swap_mut(c)
                     else:
                         rsamp = alg.gvr_scramble_mut(c, self)
-
                     i = Individual(rsamp, self.calc_fitness(rsamp))
 
                     self.pop.remove(worst[k])
                     self.pop.append(i)
 
-            elif uq_indv > div_thresh_bnd:
-                if self.mutpb != orig_mutpb:
-                    print("=================NORMAL STATE================") if self.agen else None
-                    self.mutpb = orig_mutpb
-
         # Find the closest value to the optimal fitness (in case we don't find a solution)
         closest = min(self.pop)
         end = time.process_time() - t
 
-        return self._create_solution(indiv if found else closest, end, best_data, worst_data, avg_data)
+        return self._create_solution(indiv if found else closest, end, best_data, avg_data)
 
-    def _create_solution(self, individual, comp_time, best_data, worst_data, avg_data) -> dict:
+    def _create_solution(self, individual, comp_time, best_data, avg_data) -> dict:
         """
         Creates a dictionary with all of the information about the solution or closest solution
         that was found in the EA.
@@ -275,12 +265,11 @@ class CVRP:
         """
 
         if self.plot:
-            plt.figure(figsize=(9, 7), dpi=200)
-            plt.plot(worst_data, linestyle="dotted", label="Worst Fitness Values")
-            plt.plot(best_data, linestyle="dotted", label="Best Fitness Values")
-            plt.plot(avg_data, linestyle="dotted", label="Average Fitness Values")
+            plt.figure(figsize=(10, 9), dpi=200)
+            plt.plot(best_data, linestyle="solid", label="Best Fitness Value")
+            plt.plot(avg_data, linestyle="solid", label="Average Fitness Value")
             plt.title(f'{self.cx_algo}_{self.ngen}_{self.selection_size}_{self.cxpb}_{self.mutpb}__graph')
-            plt.legend(bbox_to_anchor=(0.98, 0.98), borderaxespad=0)
+            plt.legend(loc='upper right')
             plt.xlabel("Generations")
             plt.ylabel("Fitness")
 
