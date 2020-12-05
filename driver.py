@@ -146,7 +146,7 @@ def main():
     if args.plot:
         for k in runs['RUNS'].keys():
             plt = runs['RUNS'][k]['mat_plot']
-            plt.savefig(f'results/{f_name}.jpg')
+            plt.savefig(f'results/{f_name}.jpg', bbox_inches='tight')
 
 
 if __name__ == '__main__':
