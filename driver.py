@@ -133,15 +133,15 @@ def main():
 
     now = datetime.datetime.now().strftime("%Y%m%d__%I_%M_%S%p")
     f_name = f'{cvrp.cx_algo}_{cvrp.ngen}__{now}'
+    
     if args.save:
-
         if not os.path.isdir('./results'):
             os.mkdir('./results')
 
         with open(f'results/{f_name}.json', 'w+') as fc:
             fc.write(js_res)
-    else:
-        print(js_res)
+    
+    print(js_res)
 
     if args.plot:
         for k in runs['RUNS'].keys():
