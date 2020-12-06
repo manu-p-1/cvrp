@@ -44,11 +44,11 @@ def int_ge_one(value):
 
 
 def main():
-    pop = 600
+    pop = 800
     sel = 5
     ngen = 100_000
     mutpb = 0.15
-    cxpb = 0.75
+    cxpb = 0.85
     cx_algo = algorithms.best_route_xo
     mt_algo = algorithms.inversion_mut
 
@@ -78,6 +78,8 @@ def main():
     parser.add_argument("-A", "--agen", action='store_true', help="prints the average fitness every 1000 generations")
 
     parser.add_argument("-S", "--save", action="store_true", help="saves the results to a file")
+    parser.add_argument("-R", "--routes", action="store_true", help="adds every route (verbose) of the best "
+                                                                    "individual to the result")
     parser.add_argument("-M", "--plot", action="store_true", help="plot average fitness across generations with "
                                                                   "matplotlib")
     args = parser.parse_args()
@@ -109,16 +111,17 @@ def main():
                 ngen=ngen,
                 mutpb=mutpb,
                 cxpb=cxpb,
-                cx_algo=cx_algo,
-                mt_algo=mt_algo,
                 pgen=args.pgen,
                 agen=args.agen,
-                plot=args.plot)
+                cx_algo=cx_algo,
+                mt_algo=mt_algo,
+                plot=args.plot,
+                verbose_routes=args.routes)
 
     runs = {"RUNS": {}}
     for i in range(1, runtime + 1):
         result = cvrp.run()
-        runs["RUNS"][i] = result
+        runs["RUNS"][f"RUN_{i}"] = result
 
         print(f"\n\n============END RUN {i}============\n\n")
 
@@ -133,20 +136,20 @@ def main():
 
     now = datetime.datetime.now().strftime("%Y%m%d__%I_%M_%S%p")
     f_name = f'{cvrp.cx_algo}_{cvrp.ngen}__{now}'
-    
+
     if args.save:
         if not os.path.isdir('./results'):
             os.mkdir('./results')
 
         with open(f'results/{f_name}.json', 'w+') as fc:
             fc.write(js_res)
-    
+
     print(js_res)
 
     if args.plot:
-        for k in runs['RUNS'].keys():
+        for i, k in enumerate(runs['RUNS'].keys(), start=1):
             plt = runs['RUNS'][k]['mat_plot']
-            plt.savefig(f'results/{f_name}.jpg', bbox_inches='tight')
+            plt.savefig(f'results/{f_name}__RUN_{i}.jpg', bbox_inches='tight')
 
 
 if __name__ == '__main__':
