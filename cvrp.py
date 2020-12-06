@@ -281,7 +281,6 @@ class CVRP:
             plt.legend(loc='upper right')
             plt.xlabel("Generations")
             plt.ylabel("Fitness")
-            plt.pause(1)
 
         partitioned = self.partition_routes(individual)
 
@@ -303,6 +302,7 @@ class CVRP:
             "mat_plot": plt,
             "best_individual_fitness": individual.fitness,
         }
+
         if self.verbose_routes:
             obj["best_individual"] = partitioned
 
