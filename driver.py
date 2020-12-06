@@ -120,9 +120,16 @@ def main():
                 plot=args.plot,
                 verbose_routes=args.routes)
 
+    now = datetime.datetime.now().strftime("%Y%m%d__%I_%M_%S%p")
+    f_name = f'{cvrp.cx_algo}_{cvrp.ngen}__{now}'
+
     for i in range(1, runtime + 1):
         result = cvrp.run()
         runs["RUNS"][f"RUN_{i}"] = result
+
+        if args.plot:
+            result['mat_plot'].savefig(f'results/{f_name}__RUN_{i}.jpg', bbox_inches='tight')
+
         cvrp.reset()
         print(f"\n\n============END RUN {i}============\n\n")
 
@@ -135,9 +142,6 @@ def main():
                         cls=BuildingEncoder,
                         indent=args.indent)
 
-    now = datetime.datetime.now().strftime("%Y%m%d__%I_%M_%S%p")
-    f_name = f'{cvrp.cx_algo}_{cvrp.ngen}__{now}'
-
     if args.save:
         if not os.path.isdir('./results'):
             os.mkdir('./results')
@@ -146,11 +150,6 @@ def main():
             fc.write(js_res)
 
     print(js_res)
-
-    if args.plot:
-        for i, k in enumerate(runs['RUNS'].keys(), start=1):
-            plt = runs['RUNS'][k]['mat_plot']
-            plt.savefig(f'results/{f_name}__RUN_{i}.jpg', bbox_inches='tight')
 
 
 if __name__ == '__main__':
