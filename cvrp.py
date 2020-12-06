@@ -153,7 +153,6 @@ class CVRP:
 
         print(f"Running {self.ngen} generation(s)...")
 
-        min_indv, max_indv, avg_fit = None, None, None
         best_data, avg_data = [], []
 
         div_thresh_lb = math.ceil(0.01 * self.population_size)
@@ -223,6 +222,7 @@ class CVRP:
 
             uq_indv = len(set(self.pop))
 
+            min_indv, max_indv, avg_fit = None, None, None
             if i % 1000 == 0 or i == 1:
                 if self.agen:
                     min_indv = min(self.pop).fitness
@@ -281,6 +281,7 @@ class CVRP:
             plt.legend(loc='upper right')
             plt.xlabel("Generations")
             plt.ylabel("Fitness")
+            plt.pause(1)
 
         partitioned = self.partition_routes(individual)
 
