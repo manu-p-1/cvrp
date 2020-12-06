@@ -19,16 +19,17 @@ class ReplStrat(enum.Enum):
 class CVRP:
 
     def __init__(self, problem_set: dict,
-                 population_size: int,
-                 selection_size: int,
-                 ngen: int,
-                 mutpb: float,
-                 cxpb: float,
-                 pgen: bool,
-                 agen: bool,
-                 cx_algo,
-                 mt_algo,
-                 plot=False):
+                 population_size: int = 800,
+                 selection_size: int = 5,
+                 ngen: int = 100_000,
+                 mutpb: float = 0.15,
+                 cxpb: float = 0.85,
+                 cx_algo=alg.best_route_xo,
+                 mt_algo=alg.swap_mut,
+                 pgen: bool = False,
+                 agen: bool = False,
+                 plot: bool = False,
+                 verbose_routes: bool = False):
 
         self.var_len = len(problem_set["BUILDINGS"])
         self.depot = problem_set["DEPOT"]
@@ -51,6 +52,7 @@ class CVRP:
         self.pgen = pgen
         self.agen = agen
         self.plot = plot
+        self.verbose_routes = verbose_routes
 
     def calc_fitness(self, individual):
         distance = 0
@@ -275,9 +277,7 @@ class CVRP:
 
         partitioned = self.partition_routes(individual)
 
-        return {
-            "best_individual": partitioned,
-            "best_individual_fitness": individual.fitness,
+        obj = {
             "name": type(self).__name__,
             "problem_set_name": self.problem_set_name,
             "problem_set_optimal": self.optimal_fitness,
@@ -292,5 +292,10 @@ class CVRP:
             "mutpb": self.mutpb,
             "cx_algorithm": self.cx_algo,
             "mut_algorithm": self.mt_algo,
-            "mat_plot": plt
+            "mat_plot": plt,
+            "best_individual_fitness": individual.fitness,
         }
+        if self.verbose_routes:
+            obj["best_individual"] = partitioned
+
+        return obj
