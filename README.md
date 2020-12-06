@@ -48,7 +48,7 @@ To specify arguments apart from default, view the optional arguments by running 
 
 ```
 usage: driver.py [-h] [-f] [-p] [-s] [-g] [-m] [-c] [-r] [-B | -C | -E | -O]
-                 [-I | -W | -G] [-i ] [-P] [-A] [-S] [-M]
+                 [-I | -W | -G] [-i ] [-P] [-A] [-S] [-R] [-M]
 
 Runs the CVRP with any of the optional arguments
 
@@ -72,5 +72,6 @@ optional arguments:
   -P, --pgen          prints the current generation
   -A, --agen          prints the average fitness every 1000 generations
   -S, --save          saves the results to a file
+  -R, --routes        adds every route (verbose) of the best individual to the result
   -M, --plot          plot average fitness across generations with matplotlib
 ```
