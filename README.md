@@ -32,9 +32,27 @@ into its best known solution.
 ### Requirements
 
 - Python 3 - version must be `>= 3.6.0`
+- Python pip or pipenv
 
 ### Execution
-Running `python driver.py` runs the program with default arguments:
+
+There are two options to run the algorithm:
+
+1. With pip
+    ```
+    python install pip
+    pip install matplotlib
+    python driver.py
+    ```
+2.  With pipenv
+    ```
+    python install pip
+    pip install pipenv
+    pipenv install
+    pipenv run python driver.py
+    ```
+
+Running without command line arguments runs the program with the default arguments:
 - Population Size: 600
 - Selection Size: 5
 - Number of Generations: 100000
@@ -74,4 +92,12 @@ optional arguments:
   -S, --save          saves the results to a file
   -R, --routes        adds every route (verbose) of the best individual to the result
   -M, --plot          plot average fitness across generations with matplotlib
+```
+
+For non-terminal based runs and integration, a CVRP object can be created and run by calling the `run()` function. 
+```python
+cvrp = CVRP()
+result = cvrp.run()
+cvrp.reset()
+result2 = cvrp.run()
 ```
