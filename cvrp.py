@@ -223,7 +223,7 @@ class CVRP:
             uq_indv = len(set(self.pop))
 
             min_indv, max_indv, avg_fit = None, None, None
-            if i % 1000 == 0 or i == 1:
+            if i % 250 == 0 or i == 1:
                 if self.agen:
                     min_indv = min(self.pop).fitness
                     max_indv = max(self.pop).fitness
