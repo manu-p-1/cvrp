@@ -105,22 +105,21 @@ def main():
     elif args.gvmt:
         mt_algo = algorithms.gvr_scramble_mut
 
-    cvrp = CVRP(problem_set=p_set,
-                population_size=pop,
-                selection_size=sel,
-                ngen=ngen,
-                mutpb=mutpb,
-                cxpb=cxpb,
-                pgen=args.pgen,
-                agen=args.agen,
-                cx_algo=cx_algo,
-                mt_algo=mt_algo,
-                plot=args.plot,
-                verbose_routes=args.routes)
-
     runs = {"RUNS": {}}
     for i in range(1, runtime + 1):
-        result = cvrp.run()
+        result = CVRP(problem_set=p_set,
+                      population_size=pop,
+                      selection_size=sel,
+                      ngen=ngen,
+                      mutpb=mutpb,
+                      cxpb=cxpb,
+                      pgen=args.pgen,
+                      agen=args.agen,
+                      cx_algo=cx_algo,
+                      mt_algo=mt_algo,
+                      plot=args.plot,
+                      verbose_routes=args.routes).run()
+
         runs["RUNS"][f"RUN_{i}"] = result
 
         print(f"\n\n============END RUN {i}============\n\n")
