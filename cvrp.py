@@ -36,10 +36,11 @@ class CVRP:
         self.vehicle_cap = problem_set["CAPACITY"]
         self.optimal_fitness = problem_set["OPTIMAL"]
         self.problem_set_name = problem_set["NAME"]
+        self.problem_set_buildings_orig = problem_set['BUILDINGS']
 
         self.pop = []
         for _ in range(population_size):
-            rpmt = r.sample(problem_set['BUILDINGS'], self.var_len)
+            rpmt = r.sample(self.problem_set_buildings_orig, self.var_len)
             self.pop.append(Individual(rpmt, self.calc_fitness(rpmt)))
 
         self.population_size = population_size
@@ -132,6 +133,12 @@ class CVRP:
             val = max(sel_values)
         sel_values.remove(val)
         return val
+
+    def reset(self):
+        self.pop = []
+        for _ in range(self.population_size):
+            rpmt = r.sample(self.problem_set_buildings_orig, self.var_len)
+            self.pop.append(Individual(rpmt, self.calc_fitness(rpmt)))
 
     def run(self) -> dict:
         """
