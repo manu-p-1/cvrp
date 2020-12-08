@@ -241,12 +241,12 @@ class Vehicle:
 
 def parse_file(filename: str) -> dict:
 
-    if not filename.endswith(".ocvrp"):
-        raise SyntaxError("File is not of .ocvrp type")
-
     values = {}
     buildings = []
     with open(filename, "r") as f:
+
+        if not filename.endswith(".ocvrp"):
+            raise SyntaxError("File is not of .ocvrp type")
 
         first_line = f.readline().split(":")
         second_line = f.readline().split(":")
