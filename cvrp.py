@@ -2,7 +2,7 @@ import enum
 import math
 import random as r
 import time
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 
 import matplotlib.pyplot as plt
 
@@ -11,12 +11,18 @@ from util import Building, Individual
 
 
 class ReplStrat(enum.Enum):
+    """
+    Enum class to represent Replacement Strategies
+    """
     RAND = enum.auto()
     BEST = enum.auto()
     WORST = enum.auto()
 
 
 class CVRP:
+    """
+    The CVRP class which is responsible for forming and running the CVRP optimization
+    """
 
     def __init__(self, problem_set: dict,
                  population_size: int = 800,
@@ -30,6 +36,22 @@ class CVRP:
                  agen: bool = False,
                  plot: bool = False,
                  verbose_routes: bool = False):
+        """
+        Creates a new CVRP instance based on the following parameters
+
+        :param problem_set: The path to the problem set
+        :param population_size: The population size
+        :param selection_size: The selection size
+        :param ngen: The number of generations to run the algorithm
+        :param mutpb: The mutation probability
+        :param cxpb: The crossover probability
+        :param cx_algo: The crossover algorithm - a function reference
+        :param mt_algo: The mutation algorithm - a mutation reference
+        :param pgen: A bool to flag whether to print the current generation
+        :param agen: A bool to flag whether to print generation statistics
+        :param plot: A bool to flag whether to plot the information to a results folder
+        :param verbose_routes: A bool to flag whether to save the exact route information to the results
+        """
 
         self.var_len = len(problem_set["BUILDINGS"])
         self.depot = problem_set["DEPOT"]
@@ -38,6 +60,7 @@ class CVRP:
         self.problem_set_name = problem_set["NAME"]
         self.problem_set_buildings_orig = problem_set['BUILDINGS']
 
+        # Create n random permutations from the problem set
         self.pop = []
         for _ in range(population_size):
             rpmt = r.sample(self.problem_set_buildings_orig, self.var_len)
@@ -56,6 +79,14 @@ class CVRP:
         self.verbose_routes = verbose_routes
 
     def calc_fitness(self, individual):
+        """
+        Calculates the fitness value by changing the representation to GVR form. The distance
+        is calculated between each route. For each route, the distance from the depot to the first node and
+        the distance from the last node to the depot is summed.
+
+        :param individual: The Individual to evaluate the fitness
+        :return: The fitness value
+        """
         distance = 0
         partitioned_routes = self.partition_routes(individual)
         for _, route in partitioned_routes.items():
@@ -68,6 +99,19 @@ class CVRP:
         return distance
 
     def partition_routes(self, individual: Individual) -> Dict:
+        """
+        Places the individual into its GVR representation. GVR representation was proposed by Costa et al.
+
+        Reference:
+        Costa, E., Machado, P., Pereira, B., Tavares, J.,
+        “Crossover and Diversity: A Study about GVR”, In Proceedings of the Analysis and Design of Representations and
+        Operators (ADorO’2003) a bird-of-a-feather workshop at (GECCO-2003), Chicago, Illinois, USA, 12-16 July 2003
+
+        The representation splits customers into different routes based off of maximum vehicle capacity.
+
+        :param individual: The Individual to place into GVR representation
+        :return: A Dict of routes and customers per route
+        """
         routes = {}
         current_weight = 0
         route_counter = 1
@@ -87,7 +131,12 @@ class CVRP:
         return routes
 
     @staticmethod
-    def de_partition_routes(partitioned_routes: Dict):
+    def de_partition_routes(partitioned_routes: Dict) -> List:
+        """
+        Returns the GVR representation back into its vector permutation form
+        :param partitioned_routes: The GVR representation as a Dict
+        :return: A list containing the permutation of customers
+        """
         ll = []
         # This length should only be one
         for v in partitioned_routes.values():
@@ -98,6 +147,7 @@ class CVRP:
         """
         For selection, five individuals are randomly sampled. Of the five, the two with the best selected
         are chosen to become parents. We employ a form of tournament selection here.
+
         :return: A tuple containing parent one and parent two
         """
 
@@ -110,11 +160,26 @@ class CVRP:
         return parent1, parent2
 
     def replacement_strat(self, individual: Individual, rs) -> None:
+        """
+        The replacement strategy for this problem based on the ReplStrat enum class. The new individual is then
+        appended to the population.
+
+        :param individual: The Individual to add to the population
+        :param rs: The ReplStrat enum
+        :return: None
+        """
         self._get_and_remove(self.pop, rs)
         self.pop.append(individual)
 
     @staticmethod
     def _get_nworst(sel_values, n):
+        """
+        Grabs the N worst values from an iterable collection of values.
+
+        :param sel_values: The iterable collection
+        :param n: The maximum amount of worst individuals to find
+        :return: The n worst values from the iterable
+        """
         v = sel_values[:]
         v.sort()
         return v[-n:]
@@ -122,8 +187,11 @@ class CVRP:
     @staticmethod
     def _get_and_remove(sel_values, rs):
         """
-        Get the largest fitness in the GA and remove it
-        :return: The chromosome with the highest fitness
+        Removes a value from the iterable collection of values based on a ReplStrat instance.
+        For example, ReplStrat.Worst will remove the worst value from sel_values.
+
+        :param sel_values: The iterable collection
+        :return: The removed value from sel_values based on the ReplStrat enum
         """
         if rs == rs.RAND:
             val = r.choice(sel_values)
@@ -135,6 +203,12 @@ class CVRP:
         return val
 
     def reset(self):
+        """
+        Resets this instance by reassigning this population to a random permutation of values.
+        It does not reset any other operator or probability.
+
+        :return: None
+        """
         self.pop = []
         for _ in range(self.population_size):
             rpmt = r.sample(self.problem_set_buildings_orig, self.var_len)
@@ -144,24 +218,30 @@ class CVRP:
         """
         Runs the CVRP in the following stages:
         1.) Parent Selection
-        2.) Parent Recombination/Crossover
+        2.) Parent Crossover
         3.) Child Mutation
         4.) Fitness Calculation
         5.) Survivor replacement
-        :return: A potential solution if found or the closest optimal solution otherwise
+        6.) Diversity management
+
+        :return: A potential solution if found or the closest optimal solution otherwise.
         """
 
         print(f"Running {self.ngen} generation(s)...")
 
         best_data, avg_data = [], []
 
+        # The bound at which we start diversity maintenance
         div_thresh_lb = math.ceil(0.01 * self.population_size)
+
+        # The amount of individuals to replace for diversity maintenance
         div_picking_rng = round(0.75 * self.population_size)
 
         t = time.process_time()
         found = False
         indiv = None
 
+        # Start the generation count
         for i in range(1, self.ngen + 1):
 
             mut_prob = r.choices([True, False], weights=(self.mutpb, 1 - self.mutpb), k=1)[0]
@@ -223,6 +303,10 @@ class CVRP:
             uq_indv = len(set(self.pop))
 
             min_indv, max_indv, avg_fit = None, None, None
+
+            """
+            Every 250 generations, we print the statistics or plot the value if needed
+            """
             if i % 250 == 0 or i == 1:
                 if self.agen:
                     min_indv = min(self.pop).fitness
@@ -241,6 +325,11 @@ class CVRP:
                     avg_fit = round(sum(self.pop) / self.population_size) if avg_fit is None else avg_fit
                     avg_data.append(avg_fit)
 
+            """
+            Every 10,000 generations we check if the number of unique fitness is below the diversity threshold,
+            if so we replace a certain amount of the population in an attempt to restore diversity and prevent
+            premature convergence
+            """
             if i % 10000 == 0 and uq_indv <= div_thresh_lb:
                 print("===============DIVERSITY MAINT===============") if self.agen else None
                 worst = self._get_nworst(self.pop, div_picking_rng)
@@ -268,8 +357,11 @@ class CVRP:
         """
         Creates a dictionary with all of the information about the solution or closest solution
         that was found in the EA.
+
         :param individual: The chromosome that was matched as the solution or closest solution
         :param comp_time: The computation time of the algorithm
+        :param best_data: The best fitness values from the runs as a list
+        :param avg_data: The average of fitness values from the runs as a list
         :return: A dictionary with the information
         """
 
