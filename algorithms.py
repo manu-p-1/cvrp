@@ -2,7 +2,7 @@
 https://github.com/manu-p-1/cvrp
 algorithms.py
 
-This module contains a list of functions to perform crossover and mutation operatiosn
+This module contains a list of functions to perform crossover and mutation operations
 """
 import math
 import random as r
