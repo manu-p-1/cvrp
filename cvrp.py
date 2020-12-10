@@ -1,3 +1,10 @@
+"""
+https://github.com/manu-p-1/cvrp
+cvrp.py
+
+This module contains the class to run the CVRP problem optimization
+"""
+
 import enum
 import math
 import random as r
@@ -7,7 +14,7 @@ from typing import Dict, Tuple, List
 import matplotlib.pyplot as plt
 
 import algorithms as alg
-from util import Building, Individual
+from util import Building, Individual, parse_file
 
 
 class ReplStrat(enum.Enum):
@@ -24,7 +31,7 @@ class CVRP:
     The CVRP class which is responsible for forming and running the CVRP optimization
     """
 
-    def __init__(self, problem_set: dict,
+    def __init__(self, problem_set_path: str,
                  population_size: int = 800,
                  selection_size: int = 5,
                  ngen: int = 100_000,
@@ -39,7 +46,7 @@ class CVRP:
         """
         Creates a new CVRP instance based on the following parameters
 
-        :param problem_set: The path to the problem set
+        :param problem_set_path: The path to the problem set
         :param population_size: The population size
         :param selection_size: The selection size
         :param ngen: The number of generations to run the algorithm
@@ -52,7 +59,7 @@ class CVRP:
         :param plot: A bool to flag whether to plot the information to a results folder
         :param verbose_routes: A bool to flag whether to save the exact route information to the results
         """
-
+        problem_set = parse_file(problem_set_path)
         self.var_len = len(problem_set["BUILDINGS"])
         self.depot = problem_set["DEPOT"]
         self.vehicle_cap = problem_set["CAPACITY"]
