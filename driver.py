@@ -1,3 +1,10 @@
+"""
+https://github.com/manu-p-1/cvrp
+driver.py
+
+This module contains a tester file to run the CVRP problem optimization based on command-line arguments
+"""
+
 import argparse
 import datetime
 import json
@@ -84,7 +91,7 @@ def main():
                                                                   "matplotlib")
     args = parser.parse_args()
 
-    p_set = parse_file(args.file) if args.file else parse_file("data/A-n54-k7.ocvrp")
+    p_set = args.file if args.file else parse_file("data/A-n54-k7.ocvrp")
     pop = args.pop if args.pop else pop
     sel = args.sel if args.sel else sel
     ngen = args.ngen if args.ngen else ngen
@@ -107,7 +114,7 @@ def main():
 
     runs = {"RUNS": {}}
 
-    cvrp = CVRP(problem_set=p_set,
+    cvrp = CVRP(problem_set_path=p_set,
                 population_size=pop,
                 selection_size=sel,
                 ngen=ngen,
