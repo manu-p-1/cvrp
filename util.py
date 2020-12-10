@@ -1,8 +1,10 @@
 """
+https://github.com/manu-p-1/cvrp
 util.py
 
-Contains classes and function that act as utilities for the main cvrp problem in cvrp.py
+This module contains utility functions and classes for the CVRP optimization problem
 """
+
 import collections
 import math
 from json import JSONEncoder
@@ -13,7 +15,8 @@ class Building:
 
     def __init__(self, node: int, x: float, y: float, quant: int):
         """
-        Creates a new House object with the parameters
+        Creates a new Building instance with the parameters
+
         :param node: The node number of this house - a unique number
         :param x: The x-coordinate this house sits on
         :param y: The y-coordinate this house sits on
@@ -61,8 +64,8 @@ class Building:
     @property
     def quant(self) -> int:
         """
-        A getter function to return the number of packages to pickup from the building
-        :return: The number of packages to pickup from this building
+        A getter function to return the service demand for this building
+        :return: The service demand for this building
         """
         return self._quant
 
@@ -87,6 +90,7 @@ class Building:
     def node(self, ident: int) -> None:
         """
         A setter function to set the node number of the house
+
         :param ident: The node number to set for the house
         :return: None
         """
@@ -94,6 +98,13 @@ class Building:
 
     @staticmethod
     def distance(b1: 'Building', b2: 'Building'):
+        """
+        Calculates the euclidean distance between two Building instances
+
+        :param b1: The first Building
+        :param b2: The second Building
+        :return: The euclidean distance between the Buildings, rounded to the nearest integer
+        """
         return round(math.sqrt(((b1.x - b2.x) ** 2) + ((b1.y - b2.y) ** 2)))
 
     def __str__(self):
@@ -115,6 +126,10 @@ class Building:
 
 
 class BuildingEncoder(JSONEncoder):
+    """
+    Creates a JSONEncoder child class which allows a Building instance to be converted to JSON
+    """
+
     def default(self, o):
         if isinstance(o, Building):
             return o.__dict__
@@ -123,6 +138,11 @@ class BuildingEncoder(JSONEncoder):
 class Individual(collections.abc.Sequence):
 
     def __init__(self, genes, fitness: Union[None, float]):
+        """
+        Creates a new Individual instance that associates a set of genes with a fitness value
+        :param genes: The genes (A list of Building objects) representing the genetic fragment
+        :param fitness: The fitness value of the genes. Fitness may be empty at various stages of the algorithm
+        """
         self._genes = genes
         self._fitness = fitness
 
@@ -130,7 +150,7 @@ class Individual(collections.abc.Sequence):
     def genes(self) -> List[Building]:
         """
         A getter function to return the capacity of this vehicle
-        :return: The the capacity of this vehicle
+        :return: The genes for this Individual
         """
         return self._genes
 
@@ -146,8 +166,8 @@ class Individual(collections.abc.Sequence):
     @property
     def fitness(self) -> Union[float, None]:
         """
-        A getter function to return the capacity of this vehicle
-        :return: The the capacity of this vehicle
+        A getter function to return the fitness of this Individual
+        :return: The the fitness of this Individual
         """
         return self._fitness
 
@@ -155,7 +175,7 @@ class Individual(collections.abc.Sequence):
     def fitness(self, fitness: float) -> None:
         """
         A setter function to set the fitness for this Individual
-        :param fitness: Sets the fitness for this vehicle
+        :param fitness: Sets the fitness for this Individual
         :return: None
         """
         self._fitness = fitness
@@ -216,7 +236,7 @@ class Individual(collections.abc.Sequence):
 class Vehicle:
     def __init__(self, capacity: int):
         """
-        Creates a new Vehicle object - all vehicles in this problem should be homogeneous
+        Creates a new Vehicle object - all vehicles in this problem should be of homogeneous capacity
         :param capacity: The capacity this vehicle can handle
         """
         self._capacity = capacity
@@ -240,7 +260,12 @@ class Vehicle:
 
 
 def parse_file(filename: str) -> dict:
+    """
+    Parses an .ocvrp file into a type readable by a CVRP instance.
 
+    :param filename: The name of the problem set of the .ocvrp file
+    :return: A Dict containing information of the .ocvrp file
+    """
     values = {}
     buildings = []
     with open(filename, "r") as f:
