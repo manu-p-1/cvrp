@@ -13,7 +13,7 @@ import sys
 
 import algorithms
 from cvrp import CVRP
-from util import BuildingEncoder, parse_file
+from util import BuildingEncoder
 
 
 def pos_float(value):
@@ -91,7 +91,7 @@ def main():
                                                                   "matplotlib")
     args = parser.parse_args()
 
-    p_set = args.file if args.file else parse_file("data/A-n54-k7.ocvrp")
+    p_set = args.file if args.file else "data/A-n54-k7.ocvrp"
     pop = args.pop if args.pop else pop
     sel = args.sel if args.sel else sel
     ngen = args.ngen if args.ngen else ngen
