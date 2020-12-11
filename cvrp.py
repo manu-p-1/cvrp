@@ -59,6 +59,7 @@ class CVRP:
         :param plot: A bool to flag whether to plot the information to a results folder
         :param verbose_routes: A bool to flag whether to save the exact route information to the results
         """
+        print("Loading problem set...")
         problem_set = parse_file(problem_set_path)
         self.var_len = len(problem_set["BUILDINGS"])
         self.depot = problem_set["DEPOT"]
