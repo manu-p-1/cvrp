@@ -128,7 +128,7 @@ def main():
                 verbose_routes=args.routes)
 
     now = datetime.datetime.now().strftime("%Y%m%d__%I_%M_%S%p")
-    f_name = f'{cvrp.cx_algo}_{cvrp.ngen}__{now}'
+    f_name = f'{cvrp.cx_algo}_{cvrp.ngen}_{cvrp.cxpb}__{now}'
 
     for i in range(1, runtime + 1):
         result = cvrp.run()
