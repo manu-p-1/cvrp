@@ -2,7 +2,7 @@
 https://github.com/manu-p-1/cvrp
 util.py
 
-This module contains utility functions and classes for the CVRP optimization problem
+This module contains utility functions and classes for the CVRP problem optimization
 """
 
 import collections
