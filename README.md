@@ -32,7 +32,7 @@ into its best known solution.
 ### Requirements
 
 - Python 3 - version must be `>= 3.6.0`
-- Python pip or pipenv
+- Python `pip` or `pipenv`
 
 ### Execution
 
@@ -53,13 +53,13 @@ There are two options to run the algorithm:
     ```
 
 Running without command line arguments runs the program with the default arguments:
-- Population Size: 600
-- Selection Size: 5
-- Number of Generations: 100000
-- Mutation Probability: 0.15
-- Crossover Probability: 0.75
-- Crossover: Best Route CXO
-- Mutation: Inversion MUT 
+- Population Size: `600`
+- Selection Size: `5`
+- Number of Generations: `100000`
+- Mutation Probability: `0.15`
+- Crossover Probability: `0.85`
+- Crossover: `best_route_xo`
+- Mutation: `inversion_mut` 
 
 To specify arguments apart from default, view the optional arguments by running `python driver.py -h` or
 `python driver.py --help`
