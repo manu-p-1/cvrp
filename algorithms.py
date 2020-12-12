@@ -4,6 +4,7 @@ algorithms.py
 
 This module contains a list of functions to perform crossover and mutation operations
 """
+import math
 import random as r
 from typing import Dict, Union, List
 
@@ -159,8 +160,8 @@ def cycle_xo(ind1: Individual, ind2: Individual, cvrp) -> Dict[str, Union[List[N
 
     We decide to modify the proposed crossover by finding as many combinations of cycles within a specified runtime,
     instead of 2^c (proposed by authors) or 2^5 (recommendation by authors) combinations. The runtime is
-    gradually increased to 32 based on the number of combinations available for that cycle length. Most runs is capped
-    at 32
+    gradually multiplied by a factor of 2 until a cycle length of 4. For lengths greater than or equal to 5, the
+    runtime is calculated by math.ceil(5 * math.log(cycle_len) + 24).
 
     :param ind1: The first Individual
     :param ind2: The second Individual
@@ -182,10 +183,7 @@ def cycle_xo(ind1: Individual, ind2: Individual, cvrp) -> Dict[str, Union[List[N
     elif cycle_len == 4:
         runtime = 16
     else:
-        runtime = 32
-    # runtime = math.ceil(10 * math.log(cycle_len + 0.1)
-    #                     + 22 * math.log(cycle_len)
-    #                     - 19 * math.log(cycle_len))
+        runtime = math.ceil(5 * math.log(cycle_len) + 24)
 
     for i in range(runtime):
         o_child = Individual([None] * len(ind1), None)
