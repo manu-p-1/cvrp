@@ -1,4 +1,6 @@
 NAME: Test Set
+COMMENTS: None
+DIM: 11
 CAPACITY: 20
 OPTIMAL: 0
 1  110   102   5
