@@ -8,7 +8,7 @@ import math
 import random as r
 from typing import Dict, Union, List
 
-from util import Building, Individual
+from ocvrp.util import Building, Individual
 
 
 def best_route_xo(ind1: Individual, ind2: Individual, cvrp) -> Individual:

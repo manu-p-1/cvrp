@@ -273,12 +273,20 @@ def parse_file(filename: str) -> dict:
         if not filename.endswith(".ocvrp"):
             raise SyntaxError("File is not of .ocvrp type")
 
-        first_line = f.readline().split(":")
-        second_line = f.readline().split(":")
-        third_line = f.readline().split(":")
-        values[first_line[0]] = first_line[1].replace("\n", "").strip()
-        values[second_line[0]] = int(second_line[1])
-        values[third_line[0]] = int(third_line[1])
+        try:
+            first_line = f.readline().split(":")
+            second_line = f.readline().split(":")
+            third_line = f.readline().split(":")
+            fourth_line = f.readline().split(":")
+            fifth_line = f.readline().split(":")
+
+            values[first_line[0]] = first_line[1].replace("\n", "").strip()
+            values[second_line[0]] = second_line[1].replace("\n", "").strip()
+            values[third_line[0]] = int(third_line[1])
+            values[fourth_line[0]] = int(fourth_line[1])
+            values[fifth_line[0]] = int(fifth_line[1])
+        except IOError as e:
+            raise SyntaxError("File is not formatted properly", e)
 
         for idx, line in enumerate(f):
             ident, x, y, quant = line.split()
