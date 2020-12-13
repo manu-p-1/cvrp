@@ -11,9 +11,9 @@ import json
 import os
 import sys
 
-import algorithms
-from cvrp import CVRP
-from util import BuildingEncoder
+from ocvrp import algorithms
+from ocvrp.cvrp import CVRP
+from ocvrp.util import BuildingEncoder
 
 
 def pos_float(value):
@@ -87,7 +87,7 @@ def main():
     parser.add_argument("-S", "--save", action="store_true", help="saves the results to a file")
     parser.add_argument("-R", "--routes", action="store_true", help="adds every route (verbose) of the best "
                                                                     "individual to the result")
-    parser.add_argument("-M", "--plot", action="store_true", help="plot average fitness across generations with "
+    parser.add_argument("-M", "--plot", action="store_true", help="_plot average fitness across generations with "
                                                                   "matplotlib")
     args = parser.parse_args()
 
@@ -99,7 +99,6 @@ def main():
     cxpb = args.cxpb if args.cxpb else cxpb
 
     runtime = args.run if args.run else 1
-
     if args.cxo:
         cx_algo = algorithms.cycle_xo
     elif args.erxo:
@@ -128,14 +127,16 @@ def main():
                 verbose_routes=args.routes)
 
     now = datetime.datetime.now().strftime("%Y%m%d__%I_%M_%S%p")
-    f_name = f'{cvrp.cx_algo}_{cvrp.ngen}_{cvrp.cxpb}__{now}'
+    f_name = f'{cvrp.cx_algo}_{cvrp.ngen}_{cvrp.cxpb}_{cvrp.problem_set_name}__{now}'
 
     for i in range(1, runtime + 1):
         result = cvrp.run()
         runs["RUNS"][f"RUN_{i}"] = result
 
         if args.plot:
-            result['mat_plot'].savefig(f'results/{f_name}__RUN_{i}.jpg', bbox_inches='tight')
+            curr = runs["RUNS"][f"RUN_{i}"]
+            fig_name = f'results/{f_name}__RUN{i}__FIT{curr["best_individual_fitness"]}.jpg'
+            result['mat_plot'].savefig(fig_name, bbox_inches='tight')
 
         cvrp.reset()
         print(f"\n\n============END RUN {i}============\n\n")
