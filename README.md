@@ -27,6 +27,12 @@ optimal route for each vehicle with respect to capacity and overall distance.
 We solve this problem using evolutionary approaches, specifically genetic algorithms, to optimize the problem set
 into its best known solution.
 
+### Abstract
+*This paper studies the effect of optimized heuristic crossover operations by utilizing a Genetic Algorithm to optimize the Capacitated Vehicle Routing Problem (CVRP) and understand the effect on optimized crossovers on diversity maintenance. Best-Route Crossover showed promising results within 10% of the optimal solution on various well-known CVRP datasets. An optimized type of Cycle Crossover exhibited a solution to maintain population diversity and prevent premature convergence.*
+
+### Index Terms
+*Best-Route Crossover, Capacitated Vehicle Routing Problem, Cycle Crossover, Genetic Algorithm, Genetic Vehicle Representation, Optimization, Travelling Salesperson Problem, Vehicle Routing Problem*
+
 ## Execution
 
 ### Requirements
@@ -34,7 +40,7 @@ into its best known solution.
 - Python 3 - version must be `>= 3.6.0`
 - Python `pip` or `pipenv`
 
-### Execution
+### Setup
 
 There are two options to run the algorithm:
 
@@ -61,7 +67,9 @@ Running without command line arguments runs the program with the default argumen
 - Crossover: `best_route_xo`
 - Mutation: `inversion_mut` 
 
-To specify arguments apart from default, view the optional arguments by running `python driver.py -h` or
+### Command Line
+
+To run the program on your command line, view the optional arguments by running `python driver.py -h` or
 `python driver.py --help`
 
 ```
@@ -93,11 +101,87 @@ optional arguments:
   -R, --routes        adds every route (verbose) of the best individual to the result
   -M, --plot          plot average fitness across generations with matplotlib
 ```
+#### Saving Results
+
+If the `-S` option is specified to save the results to a file, the output is stored in a `results` directory as a JSON file.
+If the `results` directory does not exist, one will be created for you. The file naming convention for saving results are as follows:  
+
+CROSSOVER ALGORITHM\_GENERATION SIZE\_CROSSOVER PROBABILITY\_DATA SET\_\_YYYYMMDD\_\_HH\_MM\_SSAM/PM
+
+An example is:  
+
+`best_route_xo_100000_0.85_F-n45-k4__20201213__06_03_29PM`  
+
+If the `-M` option is specified to save matplotlib results ta file, the output is stored in a `results` directory similar
+to saving the results to a file. If the `results` directory does not exist, one will be created for you. The file naming convention for matplotlib results are as follows:  
+
+CROSSOVER ALGORITHM\_GENERATION SIZE\_CROSSOVER PROBABILITY\_DATA SET\_\_YYYYMMDD\_\_HH\_MM\_SSAM/PM\_\_RUN NUMBER\_\_FITNESS VALUE  
+
+An example is:  
+
+`best_route_xo_100000_0.85_F-n45-k4__20201213__06_03_29PM__RUN1__FIT732`
+
+### Using Package
 
 For non-terminal based runs and integration, a CVRP object can be created and run by calling the `run()` function. 
 ```python
-cvrp = CVRP()
+from ocvrp import algorithms
+from ocvrp.cvrp import CVRP
+from ocvrp.util import BuildingEncoder
+
+cvrp = CVRP(cxpb=0.75, ngen=50_000, pgen=True, plot=True)
+
+# Result contains a dict of information about the run which includes the best individual found 
 result = cvrp.run()
+
+js_res = json.dumps(obj=result, cls=BuildingEncoder, indent=2)
+print(js_res)
+
 cvrp.reset()
-result2 = cvrp.run()
 ```
+
+`CVRP.run()` will return a dictionary object of the run summary. An example of the object is provided:
+
+```python
+{
+	'name': 'CVRP', 
+	'problem_set_name': 'F-n45-k4', 
+	'problem_set_optimal': 724, 
+	'time': '522.453125 seconds', 
+	'vehicles':4, 
+	'vehicle_capacity': 2010, 
+	'dimension': 44, 
+	'population_size': 800, 
+	'selection_size': 5, 
+	'generations': 100000, 
+	'cxpb': 0.85, 
+	'mutpb': 0.15, 
+	'cx_algorithm': 'best_route_xo', 
+	'mut_algorithm': 'inversion_mut', 
+	'mat_plot': <module 'matplotlib.pyplot'>, 
+	'best_individual_fitness': 729
+}
+```
+If `verbose_routes` is set to `True` for the CVRP instance, the exact route of the best individual will be
+added to the dictionary object. To convert the dictionary to a JSON object, a `BuildingEncoder` class is
+provided to specify to the `json.dumps` function.
+
+### Testing
+
+A PowerShell script template has been provided under the `testing` directory for batch processing algorithm runs. There are two versions: 
+
+1. CVRP_Test.ps1
+2. CVRP_TestThreadedJob.ps1
+
+The first option runs a single-threaded job. The second option runs a multi-threaded job but requires PowerShell version 7. To check your PowerShell version, run the following command on your PowerShell terminal:
+
+```powershell
+Get-Host | Select-Object Version
+```
+
+For more information on PowerShell Jobs visit:
+<https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/start-job?view=powershell-7.1>
+<https://docs.microsoft.com/en-us/powershell/module/threadjob/start-threadjob?view=powershell-7.1>
+<https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/get-job?view=powershell-7.1>
+
+We encourage you to modify the script template to meet your needs.
