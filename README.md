@@ -170,8 +170,8 @@ provided to specify to the `json.dumps` function.
 
 A PowerShell script template has been provided under the `testing` directory for batch processing algorithm runs. There are two versions: 
 
-1. CVRP_Test.ps1
-2. CVRP_TestThreadedJob.ps1
+1. `CVRP_Test.ps1`
+2. `CVRP_TestThreadedJob.ps1`
 
 The first option runs a single-threaded job. The second option runs a multi-threaded job but requires PowerShell version 7. To check your PowerShell version, run the following command on your PowerShell terminal:
 
@@ -179,7 +179,7 @@ The first option runs a single-threaded job. The second option runs a multi-thre
 Get-Host | Select-Object Version
 ```
 
-For more information on PowerShell Jobs visit:
+For more information on PowerShell Jobs visit:  
 <https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/start-job?view=powershell-7.1>
 <https://docs.microsoft.com/en-us/powershell/module/threadjob/start-threadjob?view=powershell-7.1>
 <https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/get-job?view=powershell-7.1>
