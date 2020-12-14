@@ -33,6 +33,39 @@ into its best known solution.
 ### Index Terms
 *Best-Route Crossover, Capacitated Vehicle Routing Problem, Cycle Crossover, Genetic Algorithm, Genetic Vehicle Representation, Optimization, Travelling Salesperson Problem, Vehicle Routing Problem*
 
+## Problem Sets
+Problem sets are organized in a custom format called `.ocvrp` for easier data processing. It's a simple format that is easy to use. It contains 5 important headers:
+
+1. Name of the problem set
+2. Comments for the problem set
+3. The dimension of the problem set (including the depot)
+4. The maximum capacity each vehicle is able to hold (as an integer)
+5. The optimal value for the data set (rounded to the nearest integer)
+
+These five headers must be specified in the same order as specified above to ensure proper functionality. Data is organized in tabular format with 4 elements per row. These elements are:
+
+1. Node number
+2. Node x-coordinate
+3. Node y-coordinate
+4. Node service demand
+
+The first node **must be the depot location** and comments or any other unrecognizable characters are forbidden. An example of the format is shown below.
+
+```
+NAME: A-n54-k7
+COMMENTS: None
+DIM: 54
+CAPACITY: 100
+OPTIMAL: 1167
+1 61 5 0
+2 85 53 24
+3 17 57 9
+4 49 93 15
+5 69 11 17
+
+...
+```
+
 ## Execution
 
 ### Requirements
@@ -57,7 +90,6 @@ There are two options to run the algorithm:
     pipenv install
     pipenv run python driver.py
     ```
-
 Running without command line arguments runs the program with the default arguments:
 - Population Size: `600`
 - Selection Size: `5`
