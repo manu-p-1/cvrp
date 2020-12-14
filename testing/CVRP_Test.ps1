@@ -3,7 +3,7 @@ CVRP_Test.ps1
 PowerShell Job script template to run multiple processes on Windows PowerShell
 
 For more information on PowerShell jobs, visit:
-https://docs.microsoft.com/en-us/powershell/module/threadjob/?view=powershell-7.1
+https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/start-job?view=powershell-7.1
 #>
 Write-Host "STARTING PS1 SCRIPT..."
 
