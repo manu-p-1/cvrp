@@ -14,7 +14,7 @@ from typing import Dict, Tuple, List
 import matplotlib.pyplot as plt
 
 from ocvrp import algorithms as alg
-from ocvrp.util import Building, Individual, parse_file
+from ocvrp.util import Building, Individual, OCVRPParser
 
 
 class ReplStrat(enum.Enum):
@@ -60,14 +60,15 @@ class CVRP:
         :param verbose_routes: A bool to flag whether to save the exact route information to the results
         """
         print("Loading problem set...")
-        self._problem_set = parse_file(problem_set_path)
-        self._problem_set_name = self._problem_set["NAME"]
-        self._problem_set_comments = self._problem_set["COMMENTS"]
-        self._vehicle_cap = self._problem_set["CAPACITY"]
-        self._optimal_fitness = self._problem_set["OPTIMAL"]
-        self._dim = self._problem_set["DIM"] - 1
-        self._depot = self._problem_set["DEPOT"]
-        self._problem_set_buildings_orig = self._problem_set['BUILDINGS']
+        ps_strat = OCVRPParser(problem_set_path).parse()
+
+        self._problem_set_name = ps_strat.get_ps_name()
+        self._problem_set_comments = ps_strat.get_ps_comments()
+        self._vehicle_cap = ps_strat.get_ps_capacity()
+        self._optimal_fitness = ps_strat.get_ps_optimal()
+        self._dim = ps_strat.get_ps_dim()
+        self._depot = ps_strat.get_ps_depot()
+        self._problem_set_buildings_orig = ps_strat.get_ps_buildings()
         self._pop = []
 
         self.population_size = population_size
