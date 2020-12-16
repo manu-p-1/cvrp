@@ -1,8 +1,9 @@
 NAME: Test Set
-COMMENTS: None
+COMMENTS: Use this for testing
 DIM: 11
 CAPACITY: 20
 OPTIMAL: 0
+NODES:
 1  110   102   5
 2  76    170   10
 3  162   83    7
