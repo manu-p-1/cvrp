@@ -4,7 +4,6 @@ util.py
 
 This module contains utility functions and classes for the CVRP problem optimization
 """
-
 import collections
 import math
 from json import JSONEncoder
@@ -259,43 +258,172 @@ class Vehicle:
         self._capacity = capacity
 
 
-def parse_file(filename: str) -> dict:
+class OCVRPParser:
     """
-    Parses an .ocvrp file into a type readable by a CVRP instance.
+    The parser for the .ocvrp type. The file is made of header values in the format:
+    HEADER:VALUE
+    
+    There are 6 known header values: NAME, COMMENTS, DIM, CAPACITY, OPTIMAL, and NODES
+    
+    Spacing in between header values is irrelevant including the order in which the values are written.
+    The tabular numeric data for all the nodes must be written under the NODES header.
 
-    :param filename: The name of the problem set of the .ocvrp file
-    :return: A Dict containing information of the .ocvrp file
     """
-    values = {}
-    buildings = []
-    with open(filename, "r") as f:
 
+    def __init__(self, filename):
+        """
+        Creates a new OCVRPParser with the filename
+        :param filename: The filename containing the .ocvrp file and dataset
+        """
         if not filename.endswith(".ocvrp"):
             raise SyntaxError("File is not of .ocvrp type")
 
-        try:
-            first_line = f.readline().split(":")
-            second_line = f.readline().split(":")
-            third_line = f.readline().split(":")
-            fourth_line = f.readline().split(":")
-            fifth_line = f.readline().split(":")
+        self.f = open(filename, "r")
+        self._values = {}
+        self._headers = ("NAME", "COMMENTS", "DIM", "CAPACITY", "OPTIMAL")
+        self._num_headers = ("DIM", "CAPACITY", "OPTIMAL")
 
-            values[first_line[0]] = first_line[1].replace("\n", "").strip()
-            values[second_line[0]] = second_line[1].replace("\n", "").strip()
-            values[third_line[0]] = int(third_line[1])
-            values[fourth_line[0]] = int(fourth_line[1])
-            values[fifth_line[0]] = int(fifth_line[1])
-        except IOError as e:
-            raise SyntaxError("File is not formatted properly", e)
+    class __OCVRPParserStrategy:
 
-        for idx, line in enumerate(f):
-            ident, x, y, quant = line.split()
+        def __init__(self, parser):
+            self.__parser = parser
+
+        def get_ps_depot(self):
+            """
+            Returns the depot location of the problem set
+            :return: The depot location of the problem set as a Building object
+            """
+            return self.__parser._values["DEPOT"]
+
+        def get_ps_buildings(self):
+            """
+            Returns the population for this instance
+            :return: The entire population for this instance as a list of Individual instances
+            """
+            return self.__parser._values["BUILDINGS"]
+
+        def get_ps_name(self):
+            """
+            Returns the name of the problem set
+            :return: The name of the problem set for this instance
+            """
+            return self.__parser._values["NAME"]
+
+        def get_ps_comments(self):
+            """
+            Returns the comments of the problem set
+            :return: The comments of the problem set for this instance
+            """
+            return self.__parser._values["COMMENTS"]
+
+        def get_ps_dim(self):
+            """
+            Returns the working dimension of the problem set (not including the depot)
+            :return: The working dimension of the problem set for this instance
+            """
+            return self.__parser._values["DIM"] - 1
+
+        def get_ps_capacity(self):
+            """
+            Returns the vehicle capacity of the problem set
+            :return: The vehicle capacity of the problem set for this instance
+            """
+            return self.__parser._values["CAPACITY"]
+
+        def get_ps_optimal(self):
+            """
+            Returns the optimal fitness of the problem set
+            :return: The optimal fitness of the problem set for this instance
+            """
+            return self.__parser._values["OPTIMAL"]
+
+    def parse(self):
+        """
+        Parses the dataset with the dataset loaded on this instance
+        :return: An OCVRPStrategy object containing getters for problem set headers
+        """
+        lines = self.f.readlines()
+        idx = 0
+        while idx < len(lines):
+            line = lines[idx]
+            if line not in ('\n', '\r\n'):
+                try:
+                    ln = line.split(":")
+                    ln0 = ln[0].upper()
+                    ln1 = ln[1]
+
+                    # If the header is the node, we need to load all the nodes underneath the header
+                    if ln0 == 'NODES':
+                        idx = self._grab_buildings(idx + 1, lines)
+                    else:
+                        if self._is_number(ln1) and ln0 in self._num_headers:
+                            # Load the header as an integer if it's numeric
+                            self._values[ln0] = int(ln1)
+                        else:
+                            self._values[ln0] = ln1.replace("\n", "").strip()
+                except Exception as e:
+                    raise SyntaxError("File is not formatted properly", e)
+            idx += 1
+
+        self.f.close()
+        return self.__OCVRPParserStrategy(self)
+
+    def _grab_buildings(self, curr, lines):
+        """
+        Creates Building objects from all nodes underneath the NODES header.
+        :param curr: The current index of the first node
+        :param lines: The entire .ocvrp file as a readlines() list
+        :return: The current index in the file after loading all Nodes
+        """
+        ll = len(lines)
+        buildings = []
+        ctr = 0
+
+        while curr < ll:
+            line = lines[curr]
+            ls = line.split()
+
+            ident, x, y, quant = ls
             h = Building(int(ident), float(x), float(y), int(quant))
 
-            if idx == 0:
-                values["DEPOT"] = h
+            # First node is always DEPOT
+            if ctr == 0:
+                self._values["DEPOT"] = h
             else:
                 buildings.append(h)
 
-        values["BUILDINGS"] = buildings
-    return values
+            # Check if EOF or if the next line is numeric (if not, indicates that node parsing is done)
+            if curr < ll - 1:
+                next_num = lines[curr + 1].split()
+                if len(next_num) == 0 or not self._is_number(next_num[0]):
+                    break
+            else:
+                break
+
+            ctr += 1
+            curr += 1
+
+        self._values["BUILDINGS"] = buildings
+        return curr
+
+    @staticmethod
+    def _is_number(num: str):
+        """
+        Given a string, returns whether it is a number with unicode sensitivity
+        :param num: The number as a string
+        :return: If num is a numerical value
+        """
+        try:
+            float(num)
+            return True
+        except ValueError:
+            pass
+
+        try:
+            import unicodedata
+            unicodedata.numeric(num)
+            return True
+        except (TypeError, ValueError):
+            pass
+
+        return False
