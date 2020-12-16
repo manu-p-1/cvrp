@@ -28,35 +28,59 @@ We solve this problem using evolutionary approaches, specifically genetic algori
 into its best known solution.
 
 ### Abstract
-*This paper studies the effect of optimized heuristic crossover operations by utilizing a Genetic Algorithm to optimize the Capacitated Vehicle Routing Problem (CVRP) and understand the effect on optimized crossovers on diversity maintenance. Best-Route Crossover showed promising results within 10% of the optimal solution on various well-known CVRP datasets. An optimized type of Cycle Crossover exhibited a solution to maintain population diversity and prevent premature convergence.*
+*This paper studies the effect of optimized heuristic crossover operations by utilizing a Genetic Algorithm to optimize 
+the Capacitated Vehicle Routing Problem (CVRP) and understand the effect on optimized crossovers on diversity 
+maintenance. Best-Route Crossover showed promising results within 10% of the optimal solution on various well-known 
+CVRP datasets. An optimized type of Cycle Crossover exhibited a solution to maintain population diversity and prevent 
+premature convergence.*
 
 ### Index Terms
-*Best-Route Crossover, Capacitated Vehicle Routing Problem, Cycle Crossover, Genetic Algorithm, Genetic Vehicle Representation, Optimization, Travelling Salesperson Problem, Vehicle Routing Problem*
+*Best-Route Crossover, Capacitated Vehicle Routing Problem, Cycle Crossover, Genetic Algorithm, Genetic Vehicle 
+Representation, Optimization, Travelling Salesperson Problem, Vehicle Routing Problem*
 
 ## Problem Sets
-Problem sets are organized in a custom format called `.ocvrp` for easier data processing. It's a simple format that is easy to use. It contains 5 important headers:
+Problem sets are organized in a custom format called `.ocvrp` for easier data processing. It's a simple format that is 
+easy to use. It contains 6 important headers:
 
-1. Name of the problem set
-2. Comments for the problem set
-3. The dimension of the problem set (including the depot)
-4. The maximum capacity each vehicle is able to hold (as an integer)
-5. The optimal value for the data set (rounded to the nearest integer)
+1. Name of the problem set - (str)
+2. Comments for the problem set - (str) (optional)
+3. The dimension of the problem set (including the depot) - (int)
+4. The maximum capacity each vehicle is able to hold (int) 
+5. The optimal value for the data set (int)
+6. Nodes for data set
 
-These five headers must be specified in the same order as specified above to ensure proper functionality. Data is organized in tabular format with 4 elements per row. These elements are:
+Node data is organized in tabular format with 4 elements per row. These elements are:
 
-1. Node number
-2. Node x-coordinate
-3. Node y-coordinate
-4. Node service demand
+1. Node number - (int)
+2. Node x-coordinate - (int) (float)
+3. Node y-coordinate - (int) (float)
+4. Node service demand - (int) (float)
 
-The first node **must be the depot location** and comments or any other unrecognizable characters are forbidden. An example of the format is shown below.
+Header values follow the format:  
+
+`HEADER: value`   
+
+And for Node headers:
+```
+HEADER:
+value
+value
+...
+```
+
+Ordering of headers, spacing in between a header and value, or spacing in between sets of headers are irrelevant.
+The numeric values of nodes must be positioned below the NODES header value. Headers are case-insensitive although convention
+is to use all-CAPS.
+The first node **must be the depot location** and comments or any other unrecognizable characters are forbidden. 
+An example of the format is shown below.
 
 ```
 NAME: A-n54-k7
-COMMENTS: None
+COMMENTS: Augerat 1995 Set A
 DIM: 54
 CAPACITY: 100
 OPTIMAL: 1167
+NODES:
 1 61 5 0
 2 85 53 24
 3 17 57 9
@@ -135,8 +159,10 @@ optional arguments:
 ```
 #### Saving Results
 
-If the `-S` option is specified to save the results to a file, the output is stored in a `results` directory as a JSON file.
-If the `results` directory does not exist, one will be created for you. The file naming convention for saving results are as follows:  
+If the `-S` option is specified to save the results to a file, the output is stored in a `results` directory as a JSON 
+file.
+If the `results` directory does not exist, one will be created for you. The file naming convention for saving results 
+are as follows:  
 
 CROSSOVER ALGORITHM\_GENERATION SIZE\_CROSSOVER PROBABILITY\_DATA SET\_\_YYYYMMDD\_\_HH\_MM\_SSAM/PM
 
@@ -144,8 +170,10 @@ An example is:
 
 `best_route_xo_100000_0.85_F-n45-k4__20201213__06_03_29PM`  
 
-If the `-M` option is specified to save matplotlib results ta file, the output is stored in a `results` directory similar
-to saving the results to a file. If the `results` directory does not exist, one will be created for you. The file naming convention for matplotlib results are as follows:  
+If the `-M` option is specified to save matplotlib results ta file, the output is stored in a `results` directory 
+similar
+to saving the results to a file. If the `results` directory does not exist, one will be created for you. 
+The file naming convention for matplotlib results are as follows:  
 
 CROSSOVER ALGORITHM\_GENERATION SIZE\_CROSSOVER PROBABILITY\_DATA SET\_\_YYYYMMDD\_\_HH\_MM\_SSAM/PM\_\_RUN NUMBER\_\_FITNESS VALUE  
 
@@ -157,11 +185,12 @@ An example is:
 
 For non-terminal based runs and integration, a CVRP object can be created and run by calling the `run()` function. 
 ```python
-from ocvrp import algorithms
+import json
+from ocvrp import algorithms as algo
 from ocvrp.cvrp import CVRP
 from ocvrp.util import BuildingEncoder
 
-cvrp = CVRP(cxpb=0.75, ngen=50_000, pgen=True, plot=True)
+cvrp = CVRP("./data/A-n54-k7.ocvrp", cxpb=0.75, ngen=50_000, pgen=True, plot=True, cx_algo=algo.edge_recomb_xo)
 
 # Result contains a dict of information about the run which includes the best individual found 
 result = cvrp.run()
@@ -200,12 +229,14 @@ provided to specify to the `json.dumps` function.
 
 ### Testing
 
-A PowerShell script template has been provided under the `testing` directory for batch processing algorithm runs. There are two versions: 
+A PowerShell script template has been provided under the `testing` directory for batch processing algorithm runs. 
+There are two versions: 
 
 1. `CVRP_Test.ps1`
 2. `CVRP_TestThreadedJob.ps1`
 
-The first option runs a single-threaded job. The second option runs a multi-threaded job but requires PowerShell version 7. To check your PowerShell version, run the following command on your PowerShell terminal:
+The first option runs a single-threaded job. The second option runs a multi-threaded job but requires PowerShell 
+version 7. To check your PowerShell version, run the following command on your PowerShell terminal:
 
 ```powershell
 Get-Host | Select-Object Version
