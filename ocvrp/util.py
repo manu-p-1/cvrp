@@ -266,8 +266,13 @@ class OCVRPParser:
     There are 6 known header values: NAME, COMMENTS, DIM, CAPACITY, OPTIMAL, and NODES
     
     Spacing in between header values is irrelevant including the order in which the values are written.
-    The tabular numeric data for all the nodes must be written under the NODES header.
+    The tabular numeric data for all the nodes must be written under the NODES header. More information
+    on the format is available in the README.md
 
+    The primary motivation behind creating our own data format and parser was the unintuitive format of
+    most VRP data sets. They are difficult to parse and nodes and service demands are complicated to discern.
+    The .ocvrp format is straightforward, easy to read, and flexible. In theory, the .ocvrp format could be
+    extensible for time windowed applications too.
     """
 
     def __init__(self, filename):
