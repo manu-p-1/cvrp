@@ -209,7 +209,7 @@ cvrp.reset()
 	'problem_set_name': 'F-n45-k4', 
 	'problem_set_optimal': 724, 
 	'time': '522.453125 seconds', 
-	'vehicles':4, 
+	'vehicles': 4, 
 	'vehicle_capacity': 2010, 
 	'dimension': 44, 
 	'population_size': 800, 
