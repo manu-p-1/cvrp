@@ -10,10 +10,11 @@ import datetime
 import json
 import os
 import sys
+from pathlib import Path
 
 from ocvrp import algorithms
 from ocvrp.cvrp import CVRP
-from ocvrp.util import BuildingEncoder
+from ocvrp.util import CVRPEncoder
 
 
 def pos_float(value):
@@ -50,6 +51,18 @@ def int_ge_one(value):
     return value
 
 
+class ValidOutputFile(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        try:
+            Path(values).mkdir(parents=True)
+        except IOError as ioe:
+            if hasattr(ioe, 'message'):
+                argparse.ArgumentTypeError(ioe.message)
+            else:
+                argparse.ArgumentTypeError(ioe)
+        setattr(namespace, self.dest, values)
+
+
 def main():
     pop = 800
     sel = 5
@@ -60,7 +73,9 @@ def main():
     mt_algo = algorithms.inversion_mut
 
     parser = argparse.ArgumentParser(description="Runs the CVRP with any of the optional arguments")
-    parser.add_argument("-f", "--file", metavar='', type=str, help="the path to the problem set")
+    parser.add_argument("file", type=str, help="the path to the problem set")
+    parser.add_argument("-o", "--output", action=ValidOutputFile, metavar='', type=str,
+                        help="the path to output the results (creates the path if it does not exist)")
     parser.add_argument("-p", "--pop", metavar='', type=pos_int, help="the population size")
     parser.add_argument("-s", "--sel", metavar='', type=pos_int, help="the selection size")
     parser.add_argument("-g", "--ngen", metavar='', type=pos_int, help="the generation size")
@@ -87,11 +102,19 @@ def main():
     parser.add_argument("-S", "--save", action="store_true", help="saves the results to a file")
     parser.add_argument("-R", "--routes", action="store_true", help="adds every route (verbose) of the best "
                                                                     "individual to the result")
-    parser.add_argument("-M", "--plot", action="store_true", help="_plot average fitness across generations with "
+    parser.add_argument("-M", "--plot", action="store_true", help="plot average fitness across generations with "
                                                                   "matplotlib")
     args = parser.parse_args()
 
-    p_set = args.file if args.file else "data/A-n54-k7.ocvrp"
+    p_set = args.file
+
+    if not args.output:
+        output = "./results"
+        if not os.path.isdir(output):
+            os.mkdir(output)
+    else:
+        output = args.output
+
     pop = args.pop if args.pop else pop
     sel = args.sel if args.sel else sel
     ngen = args.ngen if args.ngen else ngen
@@ -131,30 +154,27 @@ def main():
 
     for i in range(1, runtime + 1):
         result = cvrp.run()
-        runs["RUNS"][f"RUN_{i}"] = result
 
         if args.plot:
-            curr = runs["RUNS"][f"RUN_{i}"]
-            fig_name = f'results/{f_name}__RUN{i}__FIT{curr["best_individual_fitness"]}.jpg'
+            fig_name = f'{output}/{f_name}__RUN{i}__FIT{result["best_individual_fitness"]}.jpg'
             result['mat_plot'].savefig(fig_name, bbox_inches='tight')
+            del result['mat_plot']
 
+        runs["RUNS"][f"RUN_{i}"] = result
         cvrp.reset()
         print(f"\n\n============END RUN {i}============\n\n")
 
-    print("...Run Complete")
+    print("...All runs complete")
     runs['BEST_RUN'] = min(runs['RUNS'], key=lambda run: runs['RUNS'][run]['best_individual_fitness'])
     runs['WORST_RUN'] = max(runs['RUNS'], key=lambda run: runs['RUNS'][run]['best_individual_fitness'])
     runs["AVG_FITNESS"] = sum(v['best_individual_fitness'] for v in runs['RUNS'].values()) / len(runs['RUNS'].keys())
 
     js_res = json.dumps(obj=runs,
-                        cls=BuildingEncoder,
+                        cls=CVRPEncoder,
                         indent=args.indent)
 
     if args.save:
-        if not os.path.isdir('./results'):
-            os.mkdir('./results')
-
-        with open(f'results/{f_name}.json', 'w+') as fc:
+        with open(f'{output}/{f_name}.json', 'w+') as fc:
             fc.write(js_res)
 
     print(js_res)

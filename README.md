@@ -28,10 +28,12 @@ We solve this problem using evolutionary approaches, specifically genetic algori
 into its best known solution.
 
 ### Abstract
+This project was submitted in conjunction with a conference-like research paper.
+
 *This paper studies the effect of optimized heuristic crossover operations by utilizing a Genetic Algorithm to optimize 
 the Capacitated Vehicle Routing Problem (CVRP) and understand the effect on optimized crossovers on diversity 
 maintenance. Best-Route Crossover showed promising results within 10% of the optimal solution on various well-known 
-CVRP datasets. An optimized type of Cycle Crossover exhibited a solution to maintain population diversity and prevent 
+CVRP data sets. An optimized type of Cycle Crossover exhibited a solution to maintain population diversity and prevent 
 premature convergence.*
 
 ### Index Terms
@@ -40,7 +42,7 @@ Representation, Optimization, Travelling Salesperson Problem, Vehicle Routing Pr
 
 ## Problem Sets
 Problem sets are organized in a custom format called `.ocvrp` for easier data processing. It's a simple format that is 
-easy to use. It contains 6 important headers:
+easy to use. It contains 5 required headers and 1 optional *COMMENTS* header:
 
 1. Name of the problem set - (str)
 2. Comments for the problem set - (str) (optional)
@@ -125,18 +127,22 @@ Running without command line arguments runs the program with the default argumen
 
 ### Command Line
 
-To run the program on your command line, view the optional arguments by running `python driver.py -h` or
+To run the program on your command line, view the arguments by running `python driver.py -h` or 
 `python driver.py --help`
 
 ```
-usage: driver.py [-h] [-f] [-p] [-s] [-g] [-m] [-c] [-r] [-B | -C | -E | -O]
+usage: driver.py [-h] [-o] [-p] [-s] [-g] [-m] [-c] [-r] [-B | -C | -E | -O]
                  [-I | -W | -G] [-i ] [-P] [-A] [-S] [-R] [-M]
+                 file
 
 Runs the CVRP with any of the optional arguments
 
+positional arguments:
+  file                the path to the problem set
+
 optional arguments:
   -h, --help          show this help message and exit
-  -f , --file         the path to the problem set
+  -o , --output       the path to output the results (creates the path if it does not exist)
   -p , --pop          the population size
   -s , --sel          the selection size
   -g , --ngen         the generation size
@@ -161,8 +167,11 @@ optional arguments:
 
 If the `-S` option is specified to save the results to a file, the output is stored in a `results` directory as a JSON 
 file.
-If the `results` directory does not exist, one will be created for you. The file naming convention for saving results 
-are as follows:  
+If the `results` directory does not exist, one will be created. If the `-o` option is specified with `-S`, 
+the results are saved to a path. The path is created if it does not
+exist.
+
+The file naming convention for saving results are as follows:  
 
 CROSSOVER ALGORITHM\_GENERATION SIZE\_CROSSOVER PROBABILITY\_DATA SET\_\_YYYYMMDD\_\_HH\_MM\_SSAM/PM
 
@@ -188,14 +197,18 @@ For non-terminal based runs and integration, a CVRP object can be created and ru
 import json
 from ocvrp import algorithms as algo
 from ocvrp.cvrp import CVRP
-from ocvrp.util import BuildingEncoder
+from ocvrp.util import CVRPEncoder
 
+# The path to the .ocvrp file is the problem set for this instance
 cvrp = CVRP("./data/A-n54-k7.ocvrp", cxpb=0.75, ngen=50_000, pgen=True, plot=True, cx_algo=algo.edge_recomb_xo)
 
 # Result contains a dict of information about the run which includes the best individual found 
 result = cvrp.run()
 
-js_res = json.dumps(obj=result, cls=BuildingEncoder, indent=2)
+# Save the matplotlib object to a file (only if plot=True)
+result['mat_plot'].savefig("A-n54-k7-Run1.png", bbox_inches='tight')
+
+js_res = json.dumps(obj=result, cls=CVRPEncoder, indent=2)
 print(js_res)
 
 cvrp.reset()
@@ -203,28 +216,28 @@ cvrp.reset()
 
 `CVRP.run()` will return a dictionary object of the run summary. An example of the object is provided:
 
-```python
+```
 {
-	'name': 'CVRP', 
-	'problem_set_name': 'F-n45-k4', 
-	'problem_set_optimal': 724, 
-	'time': '522.453125 seconds', 
-	'vehicles': 4, 
-	'vehicle_capacity': 2010, 
-	'dimension': 44, 
-	'population_size': 800, 
-	'selection_size': 5, 
-	'generations': 100000, 
-	'cxpb': 0.85, 
-	'mutpb': 0.15, 
-	'cx_algorithm': 'best_route_xo', 
-	'mut_algorithm': 'inversion_mut', 
-	'mat_plot': <module 'matplotlib.pyplot'>, 
-	'best_individual_fitness': 729
+'name': 'CVRP', 
+'problem_set_name': 'F-n45-k4', 
+'problem_set_optimal': 724, 
+'time': '522.453125 seconds', 
+'vehicles': 4, 
+'vehicle_capacity': 2010, 
+'dimension': 44, 
+'population_size': 800, 
+'selection_size': 5, 
+'generations': 100000, 
+'cxpb': 0.85, 
+'mutpb': 0.15, 
+'cx_algorithm': 'best_route_xo', 
+'mut_algorithm': 'inversion_mut', 
+'mat_plot': <module 'matplotlib.pyplot'>, 
+'best_individual_fitness': 729
 }
 ```
 If `verbose_routes` is set to `True` for the CVRP instance, the exact route of the best individual will be
-added to the dictionary object. To convert the dictionary to a JSON object, a `BuildingEncoder` class is
+added to the dictionary object. To convert the dictionary to a JSON object, a `CVRPEncoder` class is
 provided to specify to the `json.dumps` function.
 
 ### Testing

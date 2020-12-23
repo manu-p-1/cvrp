@@ -9,7 +9,7 @@ import enum
 import math
 import random as r
 import time
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple, List, Union
 
 import matplotlib.pyplot as plt
 
@@ -399,9 +399,11 @@ class CVRP:
             "mutpb": self._mutpb,
             "cx_algorithm": self._cx_algo,
             "mut_algorithm": self._mt_algo,
-            "mat_plot": plt,
             "best_individual_fitness": individual.fitness,
         }
+
+        if self._plot:
+            obj["mat_plot"] = plt
 
         if self._verbose_routes:
             obj["best_individual"] = partitioned
@@ -417,10 +419,10 @@ class CVRP:
         return self._problem_set_name
 
     @property
-    def problem_set_comments(self) -> float:
+    def problem_set_comments(self) -> Union[float, None]:
         """
-        Returns the comments of the problem set
-        :return: The comments of the problem set for this instance
+        Returns the comments of the problem set or None if a COMMENTS header was not provided
+        :return: The comments of the problem set or None if a COMMENTS header was not provided for this instance
         """
         return self._problem_set_comments
 

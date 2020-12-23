@@ -124,9 +124,9 @@ class Building:
         return hash(self.__key())
 
 
-class BuildingEncoder(JSONEncoder):
+class CVRPEncoder(JSONEncoder):
     """
-    Creates a JSONEncoder child class which allows a Building instance to be converted to JSON
+    Creates a JSONEncoder child class which allows a CVRP instance to be converted to JSON
     """
 
     def default(self, o):
@@ -319,7 +319,7 @@ class OCVRPParser:
             Returns the comments of the problem set
             :return: The comments of the problem set for this instance
             """
-            return self.__parser._values["COMMENTS"]
+            return self.__parser._values["COMMENTS"] if "COMMENTS" in self.__parser._values else None
 
         def get_ps_dim(self):
             """
