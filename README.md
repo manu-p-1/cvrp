@@ -32,7 +32,7 @@ This project was submitted in conjunction with a conference-like research paper.
 
 *This paper studies the effect of optimized heuristic crossover operations by utilizing a Genetic Algorithm to optimize 
 the Capacitated Vehicle Routing Problem (CVRP) and understand the effect on optimized crossovers on diversity 
-maintenance. Best-Route Crossover showed promising results within 10% of the optimal solution on various well-known 
+maintenance. Best-Route Crossover showed promising results within 5% of the optimal solution on various well-known 
 CVRP data sets. An optimized type of Cycle Crossover exhibited a solution to maintain population diversity and prevent 
 premature convergence.*
 
