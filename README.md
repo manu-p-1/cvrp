@@ -209,16 +209,11 @@ from ocvrp.cvrp import CVRP
 from ocvrp.util import CVRPEncoder
 
 # The path to the .ocvrp file is the problem set for this instance
-cvrp = CVRP("./data/A-n54-k7.ocvrp", cxpb=0.75, ngen=50_000, pgen=True, plot=True, cx_algo=algo.edge_recomb_xo)
+cvrp = CVRP("./data/A-n54-k7.ocvrp", cxpb=0.75, ngen=50_000, pgen=True,
+            plot_save_path="A-n54-k7-Run1.png", cx_algo=algo.edge_recomb_xo)
 
 # Result contains a dict of information about the run which includes the best individual found 
 result = cvrp.run()
-
-# Save the matplotlib figure to a file (only if plot=True)
-if '_fig' in result:
-    result['_fig'].savefig("A-n54-k7-Run1.png", bbox_inches='tight')
-    import matplotlib.pyplot as plt
-    plt.close(result['_fig'])
 
 js_res = json.dumps(obj=result, cls=CVRPEncoder, indent=2)
 print(js_res)
@@ -244,8 +239,7 @@ cvrp.reset()
 'mutpb': 0.15, 
 'cx_algorithm': 'best_route_xo', 
 'mut_algorithm': 'inversion_mut', 
-'mat_plot': <module 'matplotlib.pyplot'>,
-'_fig': <Figure>,
+'plot_save_path': 'A-n54-k7-Run1.png',
 'best_individual_fitness': 729
 }
 ```
