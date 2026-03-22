@@ -196,6 +196,9 @@ An example is:
 
 `best_route_xo_100000_0.85_F-n45-k4__20201213__06_03_29PM__RUN1__FIT732`
 
+It looks like:
+<img width="1988" height="1919" alt="image" src="https://github.com/user-attachments/assets/6f5dfa81-2f9a-4475-8362-1a96c0ea9100" />
+
 ### Using Package
 
 For non-terminal based runs and integration, a CVRP object can be created and run by calling the `run()` function. 
