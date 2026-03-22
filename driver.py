@@ -165,16 +165,18 @@ def main():
     f_name = f'{cvrp.cx_algo}_{cvrp.ngen}_{cvrp.cxpb}_{cvrp.problem_set_name}__{now}'
 
     for i in range(1, runtime + 1):
+        if args.plot:
+            fig_name = f'{output}/{f_name}__RUN{i}__FIT_PENDING.jpg'
+            cvrp.plot_save_path = fig_name
+
         result = cvrp.run()
 
-        if args.plot:
-            fig_name = f'{output}/{f_name}__RUN{i}__FIT{result["best_individual_fitness"]}.jpg'
-            result['mat_plot'].savefig(fig_name, bbox_inches='tight')
-            # Close the figure to free memory
-            import matplotlib.pyplot as plt
-            plt.close(result.get('_fig'))
-            del result['mat_plot']
-            del result['_fig']
+        # Rename the plot file to include the actual fitness value
+        if args.plot and 'plot_save_path' in result:
+            final_fig_name = f'{output}/{f_name}__RUN{i}__FIT{result["best_individual_fitness"]}.jpg'
+            if os.path.exists(result['plot_save_path']):
+                os.rename(result['plot_save_path'], final_fig_name)
+                result['plot_save_path'] = final_fig_name
 
         runs["RUNS"][f"RUN_{i}"] = result
         cvrp.reset()

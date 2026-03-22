@@ -40,6 +40,7 @@ class CVRP:
                  pgen: bool = False,
                  agen: bool = False,
                  plot: bool = False,
+                 plot_save_path: str = None,
                  verbose_routes: bool = False):
         """
         Creates a new CVRP instance based on the following parameters
@@ -55,6 +56,7 @@ class CVRP:
         :param pgen: A bool to flag whether to print the current generation
         :param agen: A bool to flag whether to print generation statistics
         :param plot: A bool to flag whether to plot the information to a results folder
+        :param plot_save_path: The file path to save the plot image to (enables plotting). Overrides plot if set.
         :param verbose_routes: A bool to flag whether to save the exact route information to the results
         """
         print("Loading problem set...")
@@ -79,6 +81,7 @@ class CVRP:
         self.pgen = pgen
         self.agen = agen
         self.plot = plot
+        self.plot_save_path = plot_save_path
         self.verbose_routes = verbose_routes
 
         # Create n random permutations from the problem set
@@ -387,10 +390,12 @@ class CVRP:
         end = time.process_time() - t
 
         return self._create_solution(indiv if found else closest, end,
-                                        best_data, avg_data, worst_data, diversity_data, gen_data)
+                                        best_data, avg_data, worst_data, diversity_data, gen_data,
+                                        plot_save_path=self._plot_save_path)
 
     def _create_solution(self, individual, comp_time, best_data, avg_data,
-                          worst_data, diversity_data, gen_data) -> dict:
+                          worst_data, diversity_data, gen_data,
+                          plot_save_path: str = None) -> dict:
         """
         Creates a dictionary with all of the information about the solution or closest solution
         that was found in the EA.
@@ -402,6 +407,7 @@ class CVRP:
         :param worst_data: The worst fitness values from the runs as a list
         :param diversity_data: The population diversity ratio from the runs as a list
         :param gen_data: The generation numbers corresponding to each data point
+        :param plot_save_path: The file path to save the plot image to
         :return: A dictionary with the information
         """
         fig = None
@@ -506,9 +512,13 @@ class CVRP:
             "best_individual_fitness": individual.fitness,
         }
 
-        if self._plot:
-            obj["mat_plot"] = plt
-            obj["_fig"] = fig
+        if self._plot and fig is not None:
+            if plot_save_path:
+                import os
+                os.makedirs(os.path.dirname(plot_save_path) if os.path.dirname(plot_save_path) else '.', exist_ok=True)
+                fig.savefig(plot_save_path, bbox_inches='tight')
+                obj["plot_save_path"] = plot_save_path
+            plt.close(fig)
 
         if self._verbose_routes:
             obj["best_individual"] = partitioned
@@ -753,6 +763,27 @@ class CVRP:
         """
         self._is_bool(plot)
         self._plot = plot
+
+    @property
+    def plot_save_path(self) -> Union[str, None]:
+        """
+        Returns the file path where the plot image will be saved, or None if not set
+        :return: The file path where the plot image will be saved
+        """
+        return self._plot_save_path
+
+    @plot_save_path.setter
+    def plot_save_path(self, plot_save_path: Union[str, None]) -> None:
+        """
+        Sets the file path where the plot image will be saved. Setting this also enables plotting.
+        :param plot_save_path: The file path to save the plot image to
+        :return: None
+        """
+        if plot_save_path is not None and not isinstance(plot_save_path, str):
+            raise AttributeError("plot_save_path must be a string or None")
+        self._plot_save_path = plot_save_path
+        if plot_save_path is not None:
+            self._plot = True
 
     @property
     def verbose_routes(self) -> bool:
