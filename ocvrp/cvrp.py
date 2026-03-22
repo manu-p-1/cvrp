@@ -1,6 +1,6 @@
 """
 https://github.com/manu-p-1/cvrp
-ocvrp.py
+cvrp.py
 
 This module contains the class to run the CVRP problem optimization
 """
@@ -10,8 +10,6 @@ import math
 import random as r
 import time
 from typing import Dict, Tuple, List, Union
-
-import matplotlib.pyplot as plt
 
 from ocvrp import algorithms as alg
 from ocvrp.util import Building, Individual, OCVRPParser
@@ -38,7 +36,7 @@ class CVRP:
                  mutpb: float = 0.15,
                  cxpb: float = 0.85,
                  cx_algo=alg.best_route_xo,
-                 mt_algo=alg.swap_mut,
+                 mt_algo=alg.inversion_mut,
                  pgen: bool = False,
                  agen: bool = False,
                  plot: bool = False,
@@ -53,10 +51,10 @@ class CVRP:
         :param mutpb: The mutation probability
         :param cxpb: The crossover probability
         :param cx_algo: The crossover algorithm - a function reference
-        :param mt_algo: The mutation algorithm - a mutation reference
+        :param mt_algo: The mutation algorithm - a function reference
         :param pgen: A bool to flag whether to print the current generation
         :param agen: A bool to flag whether to print generation statistics
-        :param plot: A bool to flag whether to _plot the information to a results folder
+        :param plot: A bool to flag whether to plot the information to a results folder
         :param verbose_routes: A bool to flag whether to save the exact route information to the results
         """
         print("Loading problem set...")
@@ -84,13 +82,15 @@ class CVRP:
         self.verbose_routes = verbose_routes
 
         # Create n random permutations from the problem set
+        print(f"Initializing population of {self._population_size:,} individuals...")
         self.reset()
+        print("Population initialized.")
 
     def calc_fitness(self, individual):
         """
         Calculates the fitness value by changing the representation to GVR form. The distance
-        is calculated between each route. For each route, the distance from the _depot to the first node and
-        the distance from the last node to the _depot is summed.
+        is calculated between each route. For each route, the distance from the depot to the first node and
+        the distance from the last node to the depot is summed.
 
         :param individual: The Individual to evaluate the fitness
         :return: The fitness value
@@ -98,36 +98,27 @@ class CVRP:
         distance = 0
         partitioned_routes = self.partition_routes(individual)
         for _, route in partitioned_routes.items():
-            for i in range(len(route) - 1):
-                h1, h2 = route[i], route[i + 1]
+            for h1, h2 in zip(route, route[1:]):
                 distance += Building.distance(h1, h2)
             distance += Building.distance(self._depot, route[0])
-            distance += Building.distance(route[len(route) - 1], self._depot)
+            distance += Building.distance(route[-1], self._depot)
 
         return distance
 
     def partition_routes(self, individual: Individual) -> Dict:
         """
-        Places the individual into its GVR representation. GVR representation was proposed by Costa et al.
-
-        Reference:
-        Costa, E., Machado, P., Pereira, B., Tavares, J.,
-        “Crossover and Diversity: A Study about GVR”, In Proceedings of the Analysis and Design of Representations and
-        Operators (ADorO’2003) a bird-of-a-feather workshop at (GECCO-2003), Chicago, Illinois, USA, 12-16 July 2003
+        Places the individual into its GVR representation.
 
         The representation splits customers into different routes based off of maximum vehicle capacity.
 
         :param individual: The Individual to place into GVR representation
         :return: A Dict of routes and customers per route
         """
-        routes = {}
+        routes = {1: []}
         current_weight = 0
         route_counter = 1
 
         for building in individual:
-            if route_counter not in routes:
-                routes[route_counter] = []
-
             if current_weight + building.quant > self._vehicle_cap:
                 route_counter += 1
                 current_weight = 0
@@ -146,20 +137,17 @@ class CVRP:
         :return: A list containing the permutation of customers
         """
         ll = []
-        # This length should only be one
         for v in partitioned_routes.values():
             ll.extend(v)
         return ll
 
     def select(self) -> Tuple[Individual, Individual]:
         """
-        For selection, five individuals are randomly sampled. Of the five, the two with the best selected
+        For selection, individuals are randomly sampled. Of those, the two with the best fitness
         are chosen to become parents. We employ a form of tournament selection here.
 
         :return: A tuple containing parent one and parent two
         """
-
-        # take_five is the mating pool for this generation
         take_five = r.sample(self._pop, self._selection_size)
 
         parent1 = self._get_and_remove(take_five, ReplStrat.BEST)
@@ -167,17 +155,25 @@ class CVRP:
 
         return parent1, parent2
 
-    def replacement_strat(self, individual: Individual, rs) -> None:
+    def replacement_strat(self, individual: Individual, rs: ReplStrat) -> None:
         """
-        The replacement strategy for this problem based on the ReplStrat enum class. The new individual is then
-        appended to the population.
+        Restricted tournament replacement: selects a random tournament from the
+        population and replaces the worst member only if the new individual is
+        at least as good.
 
         :param individual: The Individual to add to the population
         :param rs: The ReplStrat enum
         :return: None
         """
-        self._get_and_remove(self._pop, rs)
-        self._pop.append(individual)
+        if rs == ReplStrat.WORST:
+            tourn_size = min(7, len(self._pop))
+            tourn_indices = r.sample(range(len(self._pop)), tourn_size)
+            worst_idx = max(tourn_indices, key=lambda i: self._pop[i].fitness)
+            if individual.fitness <= self._pop[worst_idx].fitness:
+                self._pop[worst_idx] = individual
+        else:
+            self._get_and_remove(self._pop, rs)
+            self._pop.append(individual)
 
     @staticmethod
     def _get_nworst(sel_values, n):
@@ -193,22 +189,36 @@ class CVRP:
         return v[-n:]
 
     @staticmethod
-    def _get_and_remove(sel_values, rs):
+    def _get_and_remove(sel_values, rs: ReplStrat):
         """
         Removes a value from the iterable collection of values based on a ReplStrat instance.
-        For example, ReplStrat.Worst will remove the worst value from sel_values.
 
         :param sel_values: The iterable collection
+        :param rs: The ReplStrat enum
         :return: The removed value from sel_values based on the ReplStrat enum
         """
-        if rs == rs.RAND:
+        if rs == ReplStrat.RAND:
             val = r.choice(sel_values)
-        elif rs == rs.BEST:
+        elif rs == ReplStrat.BEST:
             val = min(sel_values)
         else:
             val = max(sel_values)
         sel_values.remove(val)
         return val
+
+    def _unique_genotype_count(self):
+        """
+        Counts unique genotypes by hashing the node-ID tuple of each individual.
+        """
+        seen = set()
+        for ind in self._pop:
+            key = tuple(b.node for b in ind)
+            seen.add(key)
+        return len(seen)
+
+    def _unique_genotype_ratio(self):
+        """Returns the ratio of unique genotypes to population size."""
+        return self._unique_genotype_count() / self._population_size
 
     def reset(self):
         """
@@ -218,85 +228,80 @@ class CVRP:
         :return: None
         """
         self._pop = []
-        for _ in range(self._population_size):
+        for i in range(self._population_size):
             rpmt = r.sample(self._problem_set_buildings_orig, self._dim)
             self._pop.append(Individual(rpmt, self.calc_fitness(rpmt)))
+            if self._population_size >= 10000 and (i + 1) % 10000 == 0:
+                print(f"  {i + 1:,}/{self._population_size:,} individuals created", end='\r')
 
     def run(self) -> dict:
         """
-        Runs the CVRP in the following stages:
+        Runs the evolutionary loop:
         1.) Parent Selection
-        2.) Parent Crossover
-        3.) Child Mutation
-        4.) Fitness Calculation
-        5.) Survivor replacement
-        6.) Diversity management
+        2.) Crossover
+        3.) Mutation
+        4.) Fitness Evaluation
+        5.) Survivor Replacement
+        6.) Diversity Maintenance
 
         :return: A potential solution if found or the closest optimal solution otherwise.
         """
 
         print(f"Running {self._ngen} generation(s)...")
 
-        best_data, avg_data = [], []
+        best_data, avg_data, worst_data, diversity_data, gen_data = [], [], [], [], []
 
-        # The bound at which we start diversity maintenance
-        div_thresh_lb = math.ceil(0.01 * self._population_size)
+        # The bound at which we start diversity maintenance (10% unique genotypes)
+        div_thresh_lb = math.ceil(0.10 * self._population_size)
 
-        # The amount of individuals to replace for diversity maintenance
-        div_picking_rng = round(0.75 * self._population_size)
+        # The amount of individuals to replace for diversity maintenance (30%, runs more frequently)
+        div_picking_rng = round(0.30 * self._population_size)
 
         t = time.process_time()
         found = False
         indiv = None
 
-        # Start the generation count
-        for i in range(1, self._ngen + 1):
+        # Track the best individual ever seen (elitism safeguard)
+        best_ever = min(self._pop)
 
-            mut_prob = r.choices([True, False], weights=(self._mutpb, 1 - self._mutpb), k=1)[0]
-            cx_prob = r.choices([True, False], weights=(self._cxpb, 1 - self._cxpb), k=1)[0]
+        # Adaptive mutation rate starts at configured value
+        effective_mutpb = self._mutpb
+
+        # Start the generation count
+        for gen in range(1, self._ngen + 1):
+
+            cx_prob = r.random() < self._cxpb
+            mut_prob = r.random() < effective_mutpb
 
             parent1, parent2 = self.select()
+
             if cx_prob:
-                if self._cx_algo == 'best_route_xo':
-                    child1 = alg.best_route_xo(parent1, parent2, self)
-                    child2 = alg.best_route_xo(parent2, parent1, self)
-                elif self._cx_algo == 'cycle_xo':
-                    cxo = alg.cycle_xo(parent1, parent2, self)
-                    child1 = cxo['o-child']
-                    child2 = cxo['e-child']
-                elif self._cx_algo == 'edge_recomb_xo':
-                    child1 = alg.edge_recomb_xo(parent1, parent2)
-                    child2 = alg.edge_recomb_xo(parent2, parent1)
-                else:
-                    child1 = alg.order_xo(parent1, parent2)
-                    child2 = alg.order_xo(parent2, parent1)
+                # All crossover functions now return (child1, child2) tuples
+                child1, child2 = self._cx_func(parent1, parent2, self)
             else:
-                child1 = parent1
-                child2 = parent2
+                # Clone parents to avoid in-place mutation corruption
+                child1 = Individual(parent1[:], parent1.fitness)
+                child2 = Individual(parent2[:], parent2.fitness)
 
-            if mut_prob:
-                if self._mt_algo == 'inversion_mut':
-                    child1 = alg.inversion_mut(child1)
-                    child2 = alg.inversion_mut(child2)
-                elif self._mt_algo == 'swap_mut':
-                    child1 = alg.swap_mut(child1)
-                    child2 = alg.swap_mut(child2)
-                else:
-                    child1 = alg.gvr_scramble_mut(child1, self)
-                    child2 = alg.gvr_scramble_mut(child2, self)
+            if mut_prob or not cx_prob:
+                # Mutate if probability fires or if crossover didn't fire
+                child1 = self._mt_func(child1, self)
+                child2 = self._mt_func(child2, self)
 
-            """
-            Only calculate fitness if a crossover or mutation occurred, or if the xover did not
-            assign a fitness value. E.g. Cycle XO assigns mandates ranking fitness, so we don't
-            need to calculate again.
-            """
+            # Calculate fitness if not yet evaluated (crossover/mutation sets fitness=None)
             if child1.fitness is None:
                 child1.fitness = self.calc_fitness(child1)
 
             if child2.fitness is None:
                 child2.fitness = self.calc_fitness(child2)
 
-            # One of the children were found to have an optimal fitness, so I'll save that
+            # Update best-ever tracking (elitism)
+            if child1.fitness < best_ever.fitness:
+                best_ever = Individual(child1[:], child1.fitness)
+            if child2.fitness < best_ever.fitness:
+                best_ever = Individual(child2[:], child2.fitness)
+
+            # One of the children were found to have an optimal fitness
             if child1.fitness == self._optimal_fitness or child2.fitness == self._optimal_fitness:
                 indiv = child1 if child1.fitness == self._optimal_fitness else child2
                 found = True
@@ -306,62 +311,86 @@ class CVRP:
             self.replacement_strat(child2, ReplStrat.WORST)
 
             if self._pgen:
-                print(f'GEN: {i}/{self._ngen}', end='\r')
-
-            uq_indv = len(set(self._pop))
+                print(f'GEN: {gen}/{self._ngen}', end='\r')
 
             min_indv, max_indv, avg_fit = None, None, None
 
-            """
-            Every 250 generations, we print the statistics or _plot the value if needed
-            """
-            if i % 250 == 0 or i == 1:
+            # Every 250 generations, we print the statistics or plot the value if needed
+            if gen % 250 == 0 or gen == 1:
                 if self._agen:
+                    uq_indv = self._unique_genotype_count()
                     min_indv = min(self._pop).fitness
                     max_indv = max(self._pop).fitness
                     avg_fit = round(sum(self._pop) / self._population_size)
 
-                    print(f"UNIQUE FITNESS CNT: {uq_indv}/{self._population_size}")
-                    print(f"GEN {i} BEST FITNESS: {min_indv}")
-                    print(f"GEN {i} WORST FITNESS: {max_indv}")
-                    print(f"GEN {i} AVG FITNESS: {avg_fit}\n\n")
+                    print(f"UNIQUE GENOTYPES: {uq_indv}/{self._population_size}")
+                    print(f"GEN {gen} BEST FITNESS: {min_indv}")
+                    print(f"GEN {gen} WORST FITNESS: {max_indv}")
+                    print(f"GEN {gen} AVG FITNESS: {avg_fit}\n\n")
 
                 if self._plot:
                     min_indv = min(self._pop).fitness if min_indv is None else min_indv
                     best_data.append(min_indv)
 
+                    max_indv = max(self._pop).fitness if max_indv is None else max_indv
+                    worst_data.append(max_indv)
+
                     avg_fit = round(sum(self._pop) / self._population_size) if avg_fit is None else avg_fit
                     avg_data.append(avg_fit)
 
-            """
-            Every 10,000 generations we check if the number of unique fitness is below the diversity threshold,
-            if so we replace a certain amount of the population in an attempt to restore diversity and prevent
-            premature convergence
-            """
-            if i % 10000 == 0 and uq_indv <= div_thresh_lb:
-                print("===============DIVERSITY MAINT===============") if self._agen else None
+                    uq_indv = self._unique_genotype_count() if not self._agen else uq_indv
+                    diversity_data.append(uq_indv / self._population_size)
+
+                    gen_data.append(gen)
+
+            # Adaptive mutation: adjust rate based on population diversity
+            if gen % 250 == 0:
+                uq_ratio = self._unique_genotype_ratio()
+                if uq_ratio < 0.05:
+                    effective_mutpb = min(1.0, self._mutpb * 4)
+                elif uq_ratio < 0.15:
+                    effective_mutpb = min(0.5, self._mutpb * 2)
+                else:
+                    effective_mutpb = self._mutpb
+
+            # Every 2,000 generations we check diversity and restore if needed
+            if gen % 2000 == 0 and self._unique_genotype_count() <= div_thresh_lb:
+                if self._agen:
+                    print("===============DIVERSITY MAINT===============")
                 worst = self._get_nworst(self._pop, div_picking_rng)
+                # Cache the top 10% pool once (avoid re-sorting inside the loop)
+                top_pool = sorted(self._pop)[:max(1, self._population_size // 10)]
+
+                # Use random perturbations for diversity restoration instead of the
+                # configured mutation, which may converge to the same local optimum.
+                div_mutations = [alg.displacement_mut, alg.scramble_mut, alg.inversion_mut]
 
                 for k in range(div_picking_rng):
-                    c = min(self._pop)
-                    if self._mt_algo == 'inversion_mut':
-                        rsamp = alg.inversion_mut(c)
-                    elif self._mt_algo == 'swap_mut':
-                        rsamp = alg.swap_mut(c)
-                    else:
-                        rsamp = alg.gvr_scramble_mut(c, self)
-                    i = Individual(rsamp, self.calc_fitness(rsamp))
+                    c = r.choice(top_pool)
+                    # Apply 2-3 random perturbations, then re-optimize with
+                    # the configured mutation (ILS-style perturb and re-optimize)
+                    mutated = c
+                    for _ in range(r.randint(2, 3)):
+                        mut_func = r.choice(div_mutations)
+                        mutated = mut_func(mutated, self)
+                    mutated = self._mt_func(mutated, self)
+                    if mutated.fitness is None:
+                        mutated.fitness = self.calc_fitness(mutated)
 
                     self._pop.remove(worst[k])
-                    self._pop.append(i)
+                    self._pop.append(mutated)
 
-        # Find the closest value to the optimal fitness (in case we don't find a solution)
+        # Use the best individual ever seen (may have been lost during replacement)
         closest = min(self._pop)
+        if best_ever.fitness < closest.fitness:
+            closest = best_ever
         end = time.process_time() - t
 
-        return self._create_solution(indiv if found else closest, end, best_data, avg_data)
+        return self._create_solution(indiv if found else closest, end,
+                                        best_data, avg_data, worst_data, diversity_data, gen_data)
 
-    def _create_solution(self, individual, comp_time, best_data, avg_data) -> dict:
+    def _create_solution(self, individual, comp_time, best_data, avg_data,
+                          worst_data, diversity_data, gen_data) -> dict:
         """
         Creates a dictionary with all of the information about the solution or closest solution
         that was found in the EA.
@@ -370,17 +399,92 @@ class CVRP:
         :param comp_time: The computation time of the algorithm
         :param best_data: The best fitness values from the runs as a list
         :param avg_data: The average of fitness values from the runs as a list
+        :param worst_data: The worst fitness values from the runs as a list
+        :param diversity_data: The population diversity ratio from the runs as a list
+        :param gen_data: The generation numbers corresponding to each data point
         :return: A dictionary with the information
         """
-
+        fig = None
         if self._plot:
-            plt.figure(figsize=(10, 9), dpi=200)
-            plt.plot(best_data, linestyle="solid", label="Best Fitness Value")
-            plt.plot(avg_data, linestyle="solid", label="Average Fitness Value")
-            plt.title(f'{self._cx_algo}_{self._ngen}_{self._cxpb}_{self._problem_set_name}__graph')
-            plt.legend(loc='upper right')
-            plt.xlabel("Generations (x250)")
-            plt.ylabel("Fitness")
+            import matplotlib.pyplot as plt
+            import matplotlib.gridspec as gridspec
+
+            fig = plt.figure(figsize=(16, 14), dpi=150)
+            gs = gridspec.GridSpec(2, 2, hspace=0.30, wspace=0.28)
+
+            title = (f"{self._problem_set_name}  |  {self._cx_algo} + {self._mt_algo}  |  "
+                     f"pop={self._population_size}  gens={self._ngen}  "
+                     f"cx={self._cxpb}  mut={self._mutpb}")
+            fig.suptitle(title, fontsize=12, fontweight='bold', y=0.98)
+
+            # ── Panel 1: Convergence curve ──
+            ax1 = fig.add_subplot(gs[0, 0])
+            ax1.plot(gen_data, best_data, linewidth=1.5, color='#2196F3', label='Best')
+            ax1.plot(gen_data, avg_data, linewidth=1.2, color='#FF9800', alpha=0.8, label='Average')
+            ax1.fill_between(gen_data, best_data, worst_data, alpha=0.10, color='#9E9E9E', label='Best–Worst range')
+            if self._optimal_fitness and self._optimal_fitness > 0:
+                ax1.axhline(y=self._optimal_fitness, color='#4CAF50', linestyle='--',
+                            linewidth=1, label=f'Optimal ({self._optimal_fitness})')
+            ax1.set_xlabel('Generation')
+            ax1.set_ylabel('Fitness (distance)')
+            ax1.set_title('Convergence Curve')
+            ax1.legend(fontsize=8, loc='upper right')
+            ax1.grid(True, alpha=0.3)
+
+            # ── Panel 2: Population diversity ──
+            ax2 = fig.add_subplot(gs[0, 1])
+            ax2.plot(gen_data, [d * 100 for d in diversity_data],
+                     linewidth=1.5, color='#9C27B0')
+            ax2.axhline(y=10.0, color='#F44336', linestyle=':', linewidth=1,
+                        alpha=0.7, label='Diversity maintenance threshold (10%)')
+            ax2.set_xlabel('Generation')
+            ax2.set_ylabel('Unique genotypes (% of population)')
+            ax2.set_title('Population Diversity')
+            ax2.set_ylim(bottom=0)
+            ax2.legend(fontsize=8)
+            ax2.grid(True, alpha=0.3)
+
+            # ── Panel 3: Best solution route map ──
+            ax3 = fig.add_subplot(gs[1, 0])
+            partitioned_viz = self.partition_routes(individual)
+            route_colors = plt.cm.Set2(range(len(partitioned_viz)))
+            for idx, (route_num, route) in enumerate(partitioned_viz.items()):
+                xs = [self._depot.x] + [b.x for b in route] + [self._depot.x]
+                ys = [self._depot.y] + [b.y for b in route] + [self._depot.y]
+                ax3.plot(xs, ys, 'o-', color=route_colors[idx], markersize=4,
+                         linewidth=1.2, alpha=0.85, label=f'Route {route_num}')
+                for b in route:
+                    ax3.annotate(str(b.node), (b.x, b.y), fontsize=5,
+                                 ha='center', va='bottom', textcoords='offset points',
+                                 xytext=(0, 4))
+            ax3.plot(self._depot.x, self._depot.y, 's', color='#F44336',
+                     markersize=10, zorder=5, label='Depot')
+            ax3.set_xlabel('X coordinate')
+            ax3.set_ylabel('Y coordinate')
+            ax3.set_title(f'Best Solution Routes  (fitness = {individual.fitness})')
+            if len(partitioned_viz) <= 12:
+                ax3.legend(fontsize=6, loc='best', ncol=2)
+            ax3.grid(True, alpha=0.2)
+            ax3.set_aspect('equal', adjustable='datalim')
+
+            # ── Panel 4: Final population fitness distribution ──
+            ax4 = fig.add_subplot(gs[1, 1])
+            pop_fitness = [ind.fitness for ind in self._pop]
+            ax4.hist(pop_fitness, bins=min(50, max(10, len(set(pop_fitness)))),
+                     color='#607D8B', edgecolor='white', linewidth=0.5, alpha=0.85)
+            ax4.axvline(x=individual.fitness, color='#2196F3', linestyle='--',
+                        linewidth=1.5, label=f'Best = {individual.fitness}')
+            if self._optimal_fitness and self._optimal_fitness > 0:
+                ax4.axvline(x=self._optimal_fitness, color='#4CAF50', linestyle='--',
+                            linewidth=1, label=f'Optimal = {self._optimal_fitness}')
+            ax4.axvline(x=sum(pop_fitness) / len(pop_fitness), color='#FF9800',
+                        linestyle=':', linewidth=1.2,
+                        label=f'Mean = {sum(pop_fitness) / len(pop_fitness):.0f}')
+            ax4.set_xlabel('Fitness (distance)')
+            ax4.set_ylabel('Count')
+            ax4.set_title('Final Population Fitness Distribution')
+            ax4.legend(fontsize=8)
+            ax4.grid(True, alpha=0.3, axis='y')
 
         partitioned = self.partition_routes(individual)
 
@@ -404,6 +508,7 @@ class CVRP:
 
         if self._plot:
             obj["mat_plot"] = plt
+            obj["_fig"] = fig
 
         if self._verbose_routes:
             obj["best_individual"] = partitioned
@@ -411,7 +516,7 @@ class CVRP:
         return obj
 
     @property
-    def problem_set_name(self) -> float:
+    def problem_set_name(self) -> str:
         """
         Returns the name of the problem set
         :return: The name of the problem set for this instance
@@ -419,7 +524,7 @@ class CVRP:
         return self._problem_set_name
 
     @property
-    def problem_set_comments(self) -> Union[float, None]:
+    def problem_set_comments(self) -> Union[str, None]:
         """
         Returns the comments of the problem set or None if a COMMENTS header was not provided
         :return: The comments of the problem set or None if a COMMENTS header was not provided for this instance
@@ -427,7 +532,7 @@ class CVRP:
         return self._problem_set_comments
 
     @property
-    def vehicle_cap(self) -> float:
+    def vehicle_cap(self) -> int:
         """
         Returns the vehicle capacity of the problem set
         :return: The vehicle capacity of the problem set for this instance
@@ -435,7 +540,7 @@ class CVRP:
         return self._vehicle_cap
 
     @property
-    def optimal_fitness(self) -> float:
+    def optimal_fitness(self) -> int:
         """
         Returns the optimal fitness of the problem set
         :return: The optimal fitness of the problem set for this instance
@@ -443,7 +548,7 @@ class CVRP:
         return self._optimal_fitness
 
     @property
-    def dim(self) -> float:
+    def dim(self) -> int:
         """
         Returns the working dimension of the problem set (not including the depot)
         :return: The working dimension of the problem set for this instance
@@ -573,6 +678,7 @@ class CVRP:
         :param cx_algo: The crossover algorithm that will be used in this instance
         :return: None
         """
+        self._cx_func = cx_algo
         self._cx_algo = cx_algo.__name__
 
     @property
@@ -591,6 +697,7 @@ class CVRP:
         :param mt_algo: The mutation algorithm that will be used in this instance
         :return: None
         """
+        self._mt_func = mt_algo
         self._mt_algo = mt_algo.__name__
 
     @property
@@ -677,10 +784,10 @@ class CVRP:
     @staticmethod
     def _is_int_ge(value: int, ge: int):
         if not isinstance(value, int):
-            raise AttributeError("value must be float")
+            raise AttributeError("value must be int")
 
         if not value >= ge:
-            raise ValueError('Value must be >= 1')
+            raise ValueError(f'Value must be >= {ge}')
 
     @staticmethod
     def _is_bool(value: bool):

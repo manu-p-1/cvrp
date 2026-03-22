@@ -54,12 +54,9 @@ def int_ge_one(value):
 class ValidOutputFile(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         try:
-            Path(values).mkdir(parents=True)
+            Path(values).mkdir(parents=True, exist_ok=True)
         except IOError as ioe:
-            if hasattr(ioe, 'message'):
-                argparse.ArgumentTypeError(ioe.message)
-            else:
-                argparse.ArgumentTypeError(ioe)
+            raise argparse.ArgumentTypeError(str(ioe))
         setattr(namespace, self.dest, values)
 
 
@@ -88,11 +85,16 @@ def main():
     cx_types.add_argument("-C", "--cxo", action='store_true', help="use cycle crossover")
     cx_types.add_argument("-E", "--erxo", action='store_true', help="use edge recombination crossover")
     cx_types.add_argument("-O", "--oxo", action='store_true', help="use order crossover")
+    cx_types.add_argument("-X", "--pmxo", action='store_true', help="use partially mapped crossover (PMX)")
 
     mt_types = parser.add_mutually_exclusive_group()
     mt_types.add_argument("-I", "--vmt", action='store_true', help="use inversion mutation")
     mt_types.add_argument("-W", "--swmt", action='store_true', help="use swap mutation")
     mt_types.add_argument("-G", "--gvmt", action='store_true', help="use GVR based scramble mutation")
+    mt_types.add_argument("-K", "--scmt", action='store_true', help="use scramble mutation")
+    mt_types.add_argument("-T", "--topt", action='store_true', help="use 2-opt local search mutation")
+    mt_types.add_argument("-F", "--oropt", action='store_true', help="use or-opt mutation")
+    mt_types.add_argument("-D", "--disp", action='store_true', help="use displacement mutation")
 
     parser.add_argument("-i", "--indent", metavar='', nargs="?", type=int_ge_one, const=2,
                         help="the indentation amount of the result string")
@@ -128,11 +130,21 @@ def main():
         cx_algo = algorithms.edge_recomb_xo
     elif args.oxo:
         cx_algo = algorithms.order_xo
+    elif args.pmxo:
+        cx_algo = algorithms.pmx_xo
 
     if args.swmt:
         mt_algo = algorithms.swap_mut
     elif args.gvmt:
         mt_algo = algorithms.gvr_scramble_mut
+    elif args.scmt:
+        mt_algo = algorithms.scramble_mut
+    elif args.topt:
+        mt_algo = algorithms.two_opt_mut
+    elif args.oropt:
+        mt_algo = algorithms.or_opt_mut
+    elif args.disp:
+        mt_algo = algorithms.displacement_mut
 
     runs = {"RUNS": {}}
 
@@ -158,7 +170,11 @@ def main():
         if args.plot:
             fig_name = f'{output}/{f_name}__RUN{i}__FIT{result["best_individual_fitness"]}.jpg'
             result['mat_plot'].savefig(fig_name, bbox_inches='tight')
+            # Close the figure to free memory
+            import matplotlib.pyplot as plt
+            plt.close(result.get('_fig'))
             del result['mat_plot']
+            del result['_fig']
 
         runs["RUNS"][f"RUN_{i}"] = result
         cvrp.reset()
@@ -183,7 +199,7 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-    except KeyboardInterrupt as kms:
+    except KeyboardInterrupt:
         print("Keyboard Interrupt")
         try:
             sys.exit(1)

@@ -3,11 +3,11 @@
 ## Info
 
 ### Authors
-- Vrund Parikh
 - Manu Puduvalli
-- Lok Kwong
-- Glen George
 - Samuel Yuen
+- Lok Kwong
+- Vrund Parikh
+- Glen George
 
 ### Objective
 This project was created to fulfill the term-project requirement for Dr. Khaled Rasheed's CSCI 4560 Evolutionary
@@ -96,28 +96,28 @@ NODES:
 
 ### Requirements
 
-- Python 3 - version must be `>= 3.6.0`
+- Python 3 - version must be `>= 3.12`
 - Python `pip` or `pipenv`
 
 ### Setup
 
 There are two options to run the algorithm:
 
-1. With pip
+1. With pip (using a virtual environment)
     ```
-    python install pip
-    pip install matplotlib
-    python driver.py
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install "matplotlib>=3.8,<4"
+    python driver.py data/A-n54-k7.ocvrp -g 1000 -A
     ```
 2.  With pipenv
     ```
-    python install pip
     pip install pipenv
     pipenv install
-    pipenv run python driver.py
+    pipenv run python driver.py data/A-n54-k7.ocvrp -g 1000 -A
     ```
 Running without command line arguments runs the program with the default arguments:
-- Population Size: `600`
+- Population Size: `800`
 - Selection Size: `5`
 - Number of Generations: `100000`
 - Mutation Probability: `0.15`
@@ -131,8 +131,9 @@ To run the program on your command line, view the arguments by running `python d
 `python driver.py --help`
 
 ```
-usage: driver.py [-h] [-o] [-p] [-s] [-g] [-m] [-c] [-r] [-B | -C | -E | -O]
-                 [-I | -W | -G] [-i ] [-P] [-A] [-S] [-R] [-M]
+usage: driver.py [-h] [-o] [-p] [-s] [-g] [-m] [-c] [-r]
+                 [-B | -C | -E | -O | -X] [-I | -W | -G | -K | -T | -F | -D]
+                 [-i ] [-P] [-A] [-S] [-R] [-M]
                  file
 
 Runs the CVRP with any of the optional arguments
@@ -153,9 +154,14 @@ optional arguments:
   -C, --cxo           use cycle crossover
   -E, --erxo          use edge recombination crossover
   -O, --oxo           use order crossover
+  -X, --pmxo          use partially mapped crossover (PMX)
   -I, --vmt           use inversion mutation
   -W, --swmt          use swap mutation
   -G, --gvmt          use GVR based scramble mutation
+  -K, --scmt          use scramble mutation
+  -T, --topt          use 2-opt local search mutation
+  -F, --oropt         use or-opt mutation
+  -D, --disp          use displacement mutation
   -i [], --indent []  the indentation amount of the result string
   -P, --pgen          prints the current generation
   -A, --agen          prints the average fitness every 1000 generations
@@ -205,8 +211,11 @@ cvrp = CVRP("./data/A-n54-k7.ocvrp", cxpb=0.75, ngen=50_000, pgen=True, plot=Tru
 # Result contains a dict of information about the run which includes the best individual found 
 result = cvrp.run()
 
-# Save the matplotlib object to a file (only if plot=True)
-result['mat_plot'].savefig("A-n54-k7-Run1.png", bbox_inches='tight')
+# Save the matplotlib figure to a file (only if plot=True)
+if '_fig' in result:
+    result['_fig'].savefig("A-n54-k7-Run1.png", bbox_inches='tight')
+    import matplotlib.pyplot as plt
+    plt.close(result['_fig'])
 
 js_res = json.dumps(obj=result, cls=CVRPEncoder, indent=2)
 print(js_res)
@@ -232,7 +241,8 @@ cvrp.reset()
 'mutpb': 0.15, 
 'cx_algorithm': 'best_route_xo', 
 'mut_algorithm': 'inversion_mut', 
-'mat_plot': <module 'matplotlib.pyplot'>, 
+'mat_plot': <module 'matplotlib.pyplot'>,
+'_fig': <Figure>,
 'best_individual_fitness': 729
 }
 ```
@@ -242,22 +252,27 @@ provided to specify to the `json.dumps` function.
 
 ### Testing
 
-A PowerShell script template has been provided under the `testing` directory for batch processing algorithm runs. 
-There are two versions: 
+PowerShell 7 test suites live in the `testing/` directory:
 
-1. `CVRP_Test.ps1`
-2. `CVRP_TestThreadedJob.ps1`
+| Script | Description |
+|---|---|
+| `CVRP_Test.ps1` | Sequential suite — tests every crossover, mutation, dataset, combo, multi-run, and CLI flag |
+| `CVRP_TestParallel.ps1` | Parallel matrix — runs crossover × mutation × dataset combos via `Start-ThreadJob` |
 
-The first option runs a single-threaded job. The second option runs a multi-threaded job but requires PowerShell 
-version 7. To check your PowerShell version, run the following command on your PowerShell terminal:
-
+Run them with:
 ```powershell
-Get-Host | Select-Object Version
+pwsh testing/CVRP_Test.ps1
+pwsh testing/CVRP_TestParallel.ps1
 ```
 
-For more information on PowerShell Jobs visit:  
-<https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/start-job?view=powershell-7.1>
-<https://docs.microsoft.com/en-us/powershell/module/threadjob/start-threadjob?view=powershell-7.1>
-<https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/get-job?view=powershell-7.1>
+Both scripts validate exit codes and check for `best_individual_fitness` in the JSON output. The parallel script defaults to 4 concurrent jobs; adjust `-MaxParallel` inside the script if needed.
 
-We encourage you to modify the script template to meet your needs.
+---
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the full list of changes.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.

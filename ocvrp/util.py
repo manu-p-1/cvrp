@@ -283,10 +283,10 @@ class OCVRPParser:
         if not filename.endswith(".ocvrp"):
             raise SyntaxError("File is not of .ocvrp type")
 
-        self.f = open(filename, "r")
+        self._filename = filename
         self._values = {}
-        self._headers = ("NAME", "COMMENTS", "DIM", "CAPACITY", "OPTIMAL")
         self._num_headers = ("DIM", "CAPACITY", "OPTIMAL")
+        self._required_headers = ("NAME", "DIM", "CAPACITY", "OPTIMAL")
 
     class __OCVRPParserStrategy:
 
@@ -347,13 +347,15 @@ class OCVRPParser:
         Parses the dataset with the dataset loaded on this instance
         :return: An OCVRPStrategy object containing getters for problem set headers
         """
-        lines = self.f.readlines()
+        with open(self._filename, "r") as f:
+            lines = f.readlines()
+
         idx = 0
         while idx < len(lines):
             line = lines[idx]
             if line not in ('\n', '\r\n'):
                 try:
-                    ln = line.split(":")
+                    ln = line.split(":", 1)
                     ln0 = ln[0].upper()
                     ln1 = ln[1]
 
@@ -362,15 +364,28 @@ class OCVRPParser:
                         idx = self._grab_buildings(idx + 1, lines)
                     else:
                         if self._is_number(ln1) and ln0 in self._num_headers:
-                            # Load the header as an integer if it's numeric
-                            self._values[ln0] = int(ln1)
+                            self._values[ln0] = int(float(ln1))
                         else:
                             self._values[ln0] = ln1.replace("\n", "").strip()
+                except SyntaxError:
+                    raise
                 except Exception as e:
-                    raise SyntaxError("File is not formatted properly", e)
+                    raise SyntaxError(f"File is not formatted properly at line {idx + 1}") from e
             idx += 1
 
-        self.f.close()
+        # Validate required headers
+        for hdr in self._required_headers:
+            if hdr not in self._values:
+                raise SyntaxError(f"Missing required header: {hdr}")
+        if "BUILDINGS" not in self._values or "DEPOT" not in self._values:
+            raise SyntaxError("Missing NODES section")
+
+        # Validate node count against DIM (DIM includes depot, buildings list excludes it)
+        expected = self._values["DIM"] - 1
+        actual = len(self._values["BUILDINGS"])
+        if actual != expected:
+            raise SyntaxError(f"DIM header says {self._values['DIM']} nodes but found {actual + 1}")
+
         return self.__OCVRPParserStrategy(self)
 
     def _grab_buildings(self, curr, lines):
@@ -388,6 +403,18 @@ class OCVRPParser:
             line = lines[curr]
             ls = line.split()
 
+            # Skip blank lines within the node section
+            if not ls:
+                curr += 1
+                continue
+
+            # Stop if the line doesn't start with a number (next header or garbage)
+            if not self._is_number(ls[0]):
+                break
+
+            if len(ls) != 4:
+                raise SyntaxError(f"Expected 4 values per node row, got {len(ls)} at line {curr + 1}")
+
             ident, x, y, quant = ls
             h = Building(int(ident), float(x), float(y), int(quant))
 
@@ -397,19 +424,12 @@ class OCVRPParser:
             else:
                 buildings.append(h)
 
-            # Check if EOF or if the next line is numeric (if not, indicates that node parsing is done)
-            if curr < ll - 1:
-                next_num = lines[curr + 1].split()
-                if len(next_num) == 0 or not self._is_number(next_num[0]):
-                    break
-            else:
-                break
-
             ctr += 1
             curr += 1
 
         self._values["BUILDINGS"] = buildings
-        return curr
+        # Return the last consumed index (parse() will increment once more)
+        return curr - 1
 
     @staticmethod
     def _is_number(num: str):
