@@ -48,7 +48,7 @@ Hey! Thanks for your interest; I am trying to restart as much of this as I can b
    ```python
    def my_mut(child: Individual, cvrp=None) -> Individual:
    ```
-2. **Always return a new `Individual`** — never mutate the input in-place
+2. **Always return a new `Individual`** - never mutate the input in-place
 3. Add a CLI flag in `driver.py` under the `mt_types` mutually exclusive group
 4. Add the `elif` branch in `driver.py` to map the flag to the function
 
@@ -60,11 +60,11 @@ Create a `.ocvrp` file in `data/` following the format documented in the README.
 
 PowerShell 7 test suites live in the `testing/` directory:
 
-- **Sequential** — runs all crossovers, mutations, datasets, and CLI flags one at a time:
+- **Sequential** - runs all crossovers, mutations, datasets, and CLI flags one at a time:
   ```powershell
   pwsh testing/CVRP_Test.ps1
   ```
-- **Parallel** — runs a crossover × mutation × dataset matrix via `Start-ThreadJob`:
+- **Parallel** - runs a crossover × mutation × dataset matrix via `Start-ThreadJob`:
   ```powershell
   pwsh testing/CVRP_TestParallel.ps1
   ```

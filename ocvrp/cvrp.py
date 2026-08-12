@@ -12,6 +12,7 @@ import time
 from typing import Dict, Tuple, List, Union
 
 from ocvrp import algorithms as alg
+from ocvrp.distance import DistanceMatrix
 from ocvrp.util import Building, Individual, OCVRPParser
 
 
@@ -41,7 +42,8 @@ class CVRP:
                  agen: bool = False,
                  plot: bool = False,
                  plot_save_path: str = None,
-                 verbose_routes: bool = False):
+                 verbose_routes: bool = False,
+                 seed_pct: float = 0.0):
         """
         Creates a new CVRP instance based on the following parameters
 
@@ -58,8 +60,10 @@ class CVRP:
         :param plot: A bool to flag whether to plot the information to a results folder
         :param plot_save_path: The file path to save the plot image to (enables plotting). Overrides plot if set.
         :param verbose_routes: A bool to flag whether to save the exact route information to the results
+        :param seed_pct: Fraction of population to seed with constructive heuristics (0.0-1.0)
         """
         print("Loading problem set...")
+        self._problem_set_path = problem_set_path
         ps_strat = OCVRPParser(problem_set_path).parse()
 
         self._problem_set_name = ps_strat.get_ps_name()
@@ -71,6 +75,10 @@ class CVRP:
         self._problem_set_buildings_orig = ps_strat.get_ps_buildings()
         self._pop = []
 
+        # Precompute all-pairs distance matrix for O(1) lookups
+        self._dist_matrix = DistanceMatrix(self._depot, self._problem_set_buildings_orig)
+
+        self._seed_pct = seed_pct
         self.population_size = population_size
         self.selection_size = selection_size
         self.ngen = ngen
@@ -95,16 +103,21 @@ class CVRP:
         is calculated between each route. For each route, the distance from the depot to the first node and
         the distance from the last node to the depot is summed.
 
+        Uses the precomputed distance matrix for O(1) lookups instead of
+        repeated Euclidean distance calculations.
+
         :param individual: The Individual to evaluate the fitness
         :return: The fitness value
         """
         distance = 0
+        dm = self._dist_matrix
+        depot = self._depot
         partitioned_routes = self.partition_routes(individual)
         for _, route in partitioned_routes.items():
             for h1, h2 in zip(route, route[1:]):
-                distance += Building.distance(h1, h2)
-            distance += Building.distance(self._depot, route[0])
-            distance += Building.distance(route[-1], self._depot)
+                distance += dm.dist(h1, h2)
+            distance += dm.dist(depot, route[0])
+            distance += dm.dist(route[-1], depot)
 
         return distance
 
@@ -226,12 +239,50 @@ class CVRP:
     def reset(self):
         """
         Resets this instance by reassigning this population to a random permutation of values.
-        It does not reset any other operator or probability.
+        When ``seed_pct`` > 0, a fraction of the initial population is seeded with
+        solutions from constructive heuristics (nearest-neighbor, Clarke-Wright
+        savings, sweep) and their mutated variants, which accelerates convergence.
 
         :return: None
         """
         self._pop = []
-        for i in range(self._population_size):
+
+        # Seed with constructive heuristics
+        n_seeded = round(self._seed_pct * self._population_size)
+        if n_seeded > 0:
+            from ocvrp.constructive import (nearest_neighbor, clarke_wright_savings,
+                                            sweep_heuristic, routes_to_individual)
+
+            heuristics = [
+                nearest_neighbor,
+                clarke_wright_savings,
+                sweep_heuristic,
+            ]
+
+            # Generate one solution per heuristic
+            for h_func in heuristics:
+                if len(self._pop) >= n_seeded:
+                    break
+                try:
+                    routes = h_func(self._depot, self._problem_set_buildings_orig,
+                                    self._vehicle_cap, self._dist_matrix)
+                    ind = routes_to_individual(routes)
+                    ind.fitness = self.calc_fitness(ind)
+                    self._pop.append(ind)
+                except Exception:
+                    pass
+
+            # Fill remaining seeded slots with mutated variants of heuristic solutions
+            base_pool = list(self._pop)
+            while len(self._pop) < n_seeded and base_pool:
+                base = r.choice(base_pool)
+                mutated = alg.inversion_mut(base, self)
+                if mutated.fitness is None:
+                    mutated.fitness = self.calc_fitness(mutated)
+                self._pop.append(mutated)
+
+        # Fill rest with random individuals
+        for i in range(len(self._pop), self._population_size):
             rpmt = r.sample(self._problem_set_buildings_orig, self._dim)
             self._pop.append(Individual(rpmt, self.calc_fitness(rpmt)))
             if self._population_size >= 10000 and (i + 1) % 10000 == 0:
@@ -824,3 +875,43 @@ class CVRP:
     def _is_bool(value: bool):
         if not isinstance(value, bool):
             raise ValueError("Value must be bool")
+
+    @property
+    def dist_matrix(self):
+        """Returns the precomputed DistanceMatrix for this problem instance."""
+        return self._dist_matrix
+
+    @property
+    def seed_pct(self) -> float:
+        """Fraction of population seeded with constructive heuristics."""
+        return self._seed_pct
+
+    @seed_pct.setter
+    def seed_pct(self, seed_pct: float) -> None:
+        self._is_probability(seed_pct)
+        self._seed_pct = seed_pct
+
+
+    def run_parallel(self, n_islands=None):
+        """Run a multi-start parallel GA using independent island processes.
+
+        Each island receives the same operator configuration but a different
+        random seed.  The best result across all islands is returned.
+
+        :param n_islands: Number of islands (defaults to CPU count, max 8)
+        :return: A result dict (same schema as ``run()``)
+        """
+        from ocvrp.parallel import IslandModel
+        model = IslandModel(
+            self._problem_set_path,
+            n_islands=n_islands,
+            total_pop=self._population_size,
+            ngen=self._ngen,
+            cx_algo=self._cx_func,
+            mt_algo=self._mt_func,
+            selection_size=self._selection_size,
+            mutpb=self._mutpb,
+            cxpb=self._cxpb,
+            seed_pct=self._seed_pct,
+        )
+        return model.run()

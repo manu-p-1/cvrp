@@ -40,6 +40,67 @@ premature convergence.*
 *Best-Route Crossover, Capacitated Vehicle Routing Problem, Cycle Crossover, Genetic Algorithm, Genetic Vehicle 
 Representation, Optimization, Travelling Salesperson Problem, Vehicle Routing Problem*
 
+## Algorithms
+
+This solver implements a comprehensive suite of metaheuristic and classical combinatorial optimization techniques.
+Each algorithm is independently implemented and backed by its foundational publication.
+
+### Constructive Heuristics
+
+Constructive heuristics build complete feasible solutions from scratch and can be used to
+seed the GA population with high-quality initial individuals (see `--seed-pct`).
+
+| Heuristic | Description | Reference |
+|---|---|---|
+| **Nearest Neighbor** | Greedy insertion: repeatedly visits the closest feasible unvisited customer | Laporte, G. (1992). "The Vehicle Routing Problem: An overview of exact and approximate algorithms." *European Journal of Operational Research*, 59(3), 345-358. |
+| **Clarke-Wright Savings** | Computes pairwise savings *s(i,j) = d(0,i) + d(0,j) − d(i,j)* and merges routes in descending savings order | Clarke, G. and Wright, J.W. (1964). "Scheduling of vehicles from a central depot to a number of delivery points." *Operations Research*, 12(4), 568-581. |
+| **Sweep** | Sorts customers by polar angle from the depot, then assigns to routes sequentially | Gillett, B.E. and Miller, L.R. (1974). "A heuristic algorithm for the vehicle-dispatch problem." *Operations Research*, 22(2), 340-349. |
+
+### Crossover Operators
+
+| Operator | Flag | Reference |
+|---|---|---|
+| **Best Route Crossover** | `-B` | Costa, E., Machado, P., Pereira, B., Tavares, J. (2003). "Crossover and Diversity: A Study about GVR." *Proceedings of ADorO'2003, GECCO-2003*. |
+| **Cycle Crossover** (optimized) | `-C` | Nazif, H. and Lee, L.S. (2011). "Optimised crossover genetic algorithm for capacitated vehicle routing problem." *Applied Mathematical Modelling*, 36. |
+| **Edge Recombination** | `-E` | Whitley, D., Starkweather, T., Fuquay, D. (1989). "Scheduling problems and traveling salesman: The genetic edge recombination operator." *ICGA*, pp. 133-140. |
+| **Order Crossover (OX)** | `-O` | Davis, L. (1985). "Applying adaptive algorithms to epistatic domains." *IJCAI*, pp. 162-164. |
+| **Partially Mapped (PMX)** | `-X` | Goldberg, D.E. and Lingle, R. (1985). "Alleles, loci, and the traveling salesman problem." *ICGA*, pp. 154-159. |
+
+### Mutation / Local Search Operators
+
+| Operator | Flag | Type | Reference |
+|---|---|---|---|
+| **Inversion** | `-I` | Intra-route | Holland, J.H. (1975). *Adaptation in Natural and Artificial Systems*. University of Michigan Press. |
+| **Swap** | `-W` | Intra-route | Banzhaf, W. (1990). "The 'molecular' traveling salesman." *Biological Cybernetics*, 64, 7-14. |
+| **GVR Scramble** | `-G` | Intra-route | Pereira, F.B. et al. (2002). "GVR: a new genetic representation for the vehicle routing problem." *AICS*, pp. 95-102. |
+| **Scramble** | `-K` | Intra-route | Syswerda, G. (1991). "Schedule optimization using genetic algorithms." In *Handbook of Genetic Algorithms*. |
+| **2-opt** | `-T` | Intra-route | Croes, G.A. (1958). "A method for solving traveling-salesman problems." *Operations Research*, 6(6), 791-812. |
+| **Or-opt** | `-F` | Intra-route | Or, I. (1976). *Traveling salesman-type combinatorial problems and their relation to the logistics of regional blood banking.* Ph.D., Northwestern University. |
+| **Displacement** | `-D` | Intra-route | Michalewicz, Z. (1996). *Genetic Algorithms + Data Structures = Evolution Programs*. 3rd ed., Springer-Verlag. |
+| **Inter-route Relocate** | `-L` | Inter-route | Savelsbergh, M.W.P. (1992). "The VRP with time windows: Minimizing route duration." *ORSA J. on Computing*, 4(2), 146-154. |
+| **Inter-route Exchange** | `-Z` | Inter-route | Kindervater, G.A.P. and Savelsbergh, M.W.P. (1997). "Vehicle routing: Handling edge exchanges." In *Local Search in Combinatorial Optimization*, Wiley, pp. 337-360. |
+| **2-opt\*** | `-Y` | Inter-route | Potvin, J.-Y. and Rousseau, J.-M. (1995). "An exchange heuristic for routeing problems with time windows." *JORS*, 46(12), 1433-1446. |
+
+### Parallelization
+
+The solver supports **multi-start parallel genetic algorithms** using an island model.
+Multiple independent GA instances (islands) run in separate OS processes, each with a
+different random seed. The best solution across all islands is returned.
+
+| Component | Reference |
+|---|---|
+| Island Model GA | Alba, E. and Tomassini, M. (2002). "Parallelism and evolutionary algorithms." *IEEE Trans. on Evolutionary Computation*, 6(5), 443-462. |
+| Parallel GAs Survey | Cantú-Paz, E. (1998). "A survey of parallel genetic algorithms." *Calculateurs Parallèles, Réseaux et Systèmes Répartis*, 10(2), 141-171. |
+
+### Performance Optimizations
+
+| Technique | Description | Reference |
+|---|---|---|
+| **Distance Matrix** | Precomputed all-pairs O(1) distance lookups; eliminates repeated √ in fitness evaluation and local search | Toth, P. and Vigo, D. (2002). *The Vehicle Routing Problem*. SIAM. |
+| **Seeded Initialization** | Fraction of population initialized with constructive heuristic solutions for faster convergence | Reeves, C.R. (1993). *Modern Heuristic Techniques for Combinatorial Problems*. Blackwell Scientific. |
+| **Restricted Tournament Replacement** | Maintains diversity by replacing worst in tournament rather than global worst | Harik, G.R. (1995). "Finding multimodal solutions using restricted tournament selection." *ICGA*, pp. 24-31. |
+| **Adaptive Mutation** | Mutation probability increases when population diversity drops below threshold | Thierens, D. (2002). "Adaptive mutation rate control schemes in genetic algorithms." *CEC*, pp. 980-985. |
+
 ## Problem Sets
 Problem sets are organized in a custom format called `.ocvrp` for easier data processing. It's a simple format that is 
 easy to use. It contains 5 required headers and 1 optional *COMMENTS* header:
@@ -132,8 +193,10 @@ To run the program on your command line, view the arguments by running `python d
 
 ```
 usage: driver.py [-h] [-o] [-p] [-s] [-g] [-m] [-c] [-r]
-                 [-B | -C | -E | -O | -X] [-I | -W | -G | -K | -T | -F | -D]
+                 [-B | -C | -E | -O | -X]
+                 [-I | -W | -G | -K | -T | -F | -D | -L | -Z | -Y]
                  [-i ] [-P] [-A] [-S] [-R] [-M]
+                 [--islands] [--seed-pct]
                  file
 
 Runs the CVRP with any of the optional arguments
@@ -162,12 +225,17 @@ optional arguments:
   -T, --topt          use 2-opt local search mutation
   -F, --oropt         use or-opt mutation
   -D, --disp          use displacement mutation
+  -L, --reloc         use inter-route relocate mutation (local search)
+  -Z, --exch          use inter-route exchange mutation (local search)
+  -Y, --toptstar      use 2-opt* inter-route tail exchange mutation
   -i [], --indent []  the indentation amount of the result string
   -P, --pgen          prints the current generation
-  -A, --agen          prints the average fitness every 1000 generations
+  -A, --agen          prints the average fitness every 250 generations
   -S, --save          saves the results to a file
   -R, --routes        adds every route (verbose) of the best individual to the result
   -M, --plot          plot average fitness across generations with matplotlib
+  --islands           number of parallel islands for multi-start GA
+  --seed-pct          fraction of population seeded with constructive heuristics (0.0-1.0)
 ```
 #### Saving Results
 
@@ -221,6 +289,56 @@ print(js_res)
 cvrp.reset()
 ```
 
+#### Parallel Island Model
+
+Run multiple independent GA instances across CPU cores and return the best result:
+```python
+from ocvrp.cvrp import CVRP
+
+cvrp = CVRP("./data/A-n54-k7.ocvrp", ngen=25_000, seed_pct=0.1)
+result = cvrp.run_parallel(n_islands=4)
+print(f"Best fitness: {result['best_individual_fitness']}")
+```
+
+Or use the `IslandModel` class directly for full control:
+```python
+from ocvrp.parallel import IslandModel
+from ocvrp import algorithms as algo
+
+model = IslandModel(
+    "./data/A-n54-k7.ocvrp",
+    n_islands=8,
+    total_pop=1600,
+    ngen=50_000,
+    cx_algo=algo.cycle_xo,
+    mutpb=0.20,
+    seed_pct=0.1,
+)
+result = model.run()
+```
+
+#### Constructive Heuristics (Standalone)
+
+The constructive heuristics can also be used independently:
+```python
+from ocvrp.util import OCVRPParser
+from ocvrp.distance import DistanceMatrix
+from ocvrp.constructive import clarke_wright_savings, nearest_neighbor, sweep_heuristic
+
+ps = OCVRPParser("./data/A-n54-k7.ocvrp").parse()
+depot = ps.get_ps_depot()
+buildings = ps.get_ps_buildings()
+capacity = ps.get_ps_capacity()
+dm = DistanceMatrix(depot, buildings)
+
+savings_routes = clarke_wright_savings(depot, buildings, capacity, dm)
+nn_routes = nearest_neighbor(depot, buildings, capacity, dm)
+sweep_routes = sweep_heuristic(depot, buildings, capacity, dm)
+
+for i, route in enumerate(savings_routes, 1):
+    print(f"Route {i}: {[b.node for b in route]}")
+```
+
 `CVRP.run()` will return a dictionary object of the run summary. An example of the object is provided:
 
 ```
@@ -253,8 +371,8 @@ PowerShell 7 test suites live in the `testing/` directory:
 
 | Script | Description |
 |---|---|
-| `CVRP_Test.ps1` | Sequential suite — tests every crossover, mutation, dataset, combo, multi-run, and CLI flag |
-| `CVRP_TestParallel.ps1` | Parallel matrix — runs crossover × mutation × dataset combos via `Start-ThreadJob` |
+| `CVRP_Test.ps1` | Sequential suite - tests every crossover, mutation, dataset, combo, multi-run, and CLI flag |
+| `CVRP_TestParallel.ps1` | Parallel matrix - runs crossover × mutation × dataset combos via `Start-ThreadJob` |
 
 Run them with:
 ```powershell
