@@ -47,7 +47,7 @@ function Run-Test {
 Write-Host "`n=== CVRP Test Suite (sequential) ===`n"
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
 
-# --- Crossover tests (test_set, small and fast) ---
+# Crossover tests (test_set, small and fast) 
 Write-Host "Crossover operators:" -ForegroundColor Cyan
 $crossovers = @(
     @("-B", "best_route_xo"),
@@ -60,7 +60,7 @@ foreach ($cx in $crossovers) {
     Run-Test $cx[1] "data/test_set.ocvrp -g $Gens -p $Pop $($cx[0])"
 }
 
-# --- Mutation tests (test_set) ---
+# Mutation tests (test_set) 
 Write-Host "`nMutation operators:" -ForegroundColor Cyan
 $mutations = @(
     @("-I", "inversion_mut"),
@@ -75,7 +75,7 @@ foreach ($mt in $mutations) {
     Run-Test $mt[1] "data/test_set.ocvrp -g $Gens -p $Pop $($mt[0])"
 }
 
-# --- Data set tests (default algorithms, quick runs) ---
+# Data set tests (default algorithms, quick runs) 
 Write-Host "`nData sets:" -ForegroundColor Cyan
 $datasets = @(
     "data/test_set.ocvrp",
@@ -90,7 +90,7 @@ foreach ($ds in $datasets) {
     Run-Test $name "$ds -g $Gens -p $Pop"
 }
 
-# --- Combo tests (crossover + mutation pairs on a mid-size set) ---
+# Combo tests (crossover + mutation pairs on a mid-size set) 
 Write-Host "`nCombination tests (F-n45-k4):" -ForegroundColor Cyan
 $combos = @(
     @("-O -T", "order_xo + two_opt_mut"),
@@ -103,11 +103,11 @@ foreach ($cb in $combos) {
     Run-Test $cb[1] "data/F-n45-k4.ocvrp -g $Gens -p $Pop $($cb[0])"
 }
 
-# --- Multi-run test ---
+# Multi-run test 
 Write-Host "`nMulti-run:" -ForegroundColor Cyan
 Run-Test "3 runs with -r 3" "data/test_set.ocvrp -g 200 -p 30 -r 3"
 
-# --- CLI flag tests ---
+# CLI flag tests 
 Write-Host "`nCLI flags:" -ForegroundColor Cyan
 Run-Test "verbose routes (-R)" "data/test_set.ocvrp -g 200 -p 30 -R"
 Run-Test "save results (-S)" "data/test_set.ocvrp -g 200 -p 30 -S -o ./results/test_output"

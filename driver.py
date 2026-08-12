@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 from ocvrp import algorithms
+from ocvrp import local_search
 from ocvrp.cvrp import CVRP
 from ocvrp.util import CVRPEncoder
 
@@ -95,17 +96,27 @@ def main():
     mt_types.add_argument("-T", "--topt", action='store_true', help="use 2-opt local search mutation")
     mt_types.add_argument("-F", "--oropt", action='store_true', help="use or-opt mutation")
     mt_types.add_argument("-D", "--disp", action='store_true', help="use displacement mutation")
+    mt_types.add_argument("-L", "--reloc", action='store_true',
+                          help="use inter-route relocate mutation (local search)")
+    mt_types.add_argument("-Z", "--exch", action='store_true',
+                          help="use inter-route exchange mutation (local search)")
+    mt_types.add_argument("-Y", "--toptstar", action='store_true',
+                          help="use 2-opt* inter-route tail exchange mutation")
 
     parser.add_argument("-i", "--indent", metavar='', nargs="?", type=int_ge_one, const=2,
                         help="the indentation amount of the result string")
     parser.add_argument("-P", "--pgen", action='store_true', help="prints the current generation")
-    parser.add_argument("-A", "--agen", action='store_true', help="prints the average fitness every 1000 generations")
+    parser.add_argument("-A", "--agen", action='store_true', help="prints the average fitness every 250 generations")
 
     parser.add_argument("-S", "--save", action="store_true", help="saves the results to a file")
     parser.add_argument("-R", "--routes", action="store_true", help="adds every route (verbose) of the best "
                                                                     "individual to the result")
     parser.add_argument("-M", "--plot", action="store_true", help="plot average fitness across generations with "
                                                                   "matplotlib")
+    parser.add_argument("--islands", metavar='', type=int_ge_one,
+                        help="number of parallel islands (multi-start GA)")
+    parser.add_argument("--seed-pct", metavar='', type=pos_float, default=0.0,
+                        help="fraction of population seeded with constructive heuristics (0.0-1.0)")
     args = parser.parse_args()
 
     p_set = args.file
@@ -145,6 +156,12 @@ def main():
         mt_algo = algorithms.or_opt_mut
     elif args.disp:
         mt_algo = algorithms.displacement_mut
+    elif args.reloc:
+        mt_algo = local_search.relocate_mut
+    elif args.exch:
+        mt_algo = local_search.exchange_mut
+    elif args.toptstar:
+        mt_algo = local_search.two_opt_star_mut
 
     runs = {"RUNS": {}}
 
@@ -159,7 +176,8 @@ def main():
                 cx_algo=cx_algo,
                 mt_algo=mt_algo,
                 plot=args.plot,
-                verbose_routes=args.routes)
+                verbose_routes=args.routes,
+                seed_pct=args.seed_pct)
 
     now = datetime.datetime.now().strftime("%Y%m%d__%I_%M_%S%p")
     f_name = f'{cvrp.cx_algo}_{cvrp.ngen}_{cvrp.cxpb}_{cvrp.problem_set_name}__{now}'
@@ -169,7 +187,10 @@ def main():
             fig_name = f'{output}/{f_name}__RUN{i}__FIT_PENDING.jpg'
             cvrp.plot_save_path = fig_name
 
-        result = cvrp.run()
+        if args.islands:
+            result = cvrp.run_parallel(n_islands=args.islands)
+        else:
+            result = cvrp.run()
 
         # Rename the plot file to include the actual fitness value
         if args.plot and 'plot_save_path' in result:

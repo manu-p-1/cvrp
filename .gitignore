@@ -238,6 +238,13 @@ orleans.codegen.cs
 # (https://github.com/github/gitignore/pull/1529#issuecomment-104372622)
 #bower_components/
 
+# Local Python environment and temp files
+lib/
+__pycache__/
+*.pyc
+.DS_Store
+#driver.py#
+
 # RIA/Silverlight projects
 Generated_Code/
 

@@ -484,7 +484,8 @@ def scramble_mut(child: Individual, cvrp=None) -> Individual:
 def two_opt_mut(child: Individual, cvrp=None) -> Individual:
     """
     2-opt local search within each GVR route. Iteratively reverses segments
-    that reduce total distance until no improvement is found.
+    that reduce total distance until no improvement is found. Uses the
+    precomputed distance matrix when available for O(1) edge-cost lookups.
 
     Reference: Croes, G. A. (1958). Operations Research, 6(6), 791-812.
 
@@ -494,6 +495,8 @@ def two_opt_mut(child: Individual, cvrp=None) -> Individual:
     """
     partitioned = cvrp.partition_routes(child)
     depot = cvrp.depot
+    dm = getattr(cvrp, 'dist_matrix', None)
+    d = dm.dist if dm else Building.distance
 
     for route_num in partitioned:
         route = partitioned[route_num]
@@ -510,8 +513,8 @@ def two_opt_mut(child: Individual, cvrp=None) -> Individual:
                     before_i = depot if i == 0 else route[i - 1]
                     after_j = depot if j == n - 1 else route[j + 1]
 
-                    d_old = Building.distance(before_i, route[i]) + Building.distance(route[j], after_j)
-                    d_new = Building.distance(before_i, route[j]) + Building.distance(route[i], after_j)
+                    d_old = d(before_i, route[i]) + d(route[j], after_j)
+                    d_new = d(before_i, route[j]) + d(route[i], after_j)
 
                     if d_new < d_old:
                         route[i:j + 1] = route[i:j + 1][::-1]
@@ -587,3 +590,22 @@ def _swap(ll, idx1: int, idx2: int) -> None:
     :return: None
     """
     ll[idx1], ll[idx2] = ll[idx2], ll[idx1]
+
+
+CROSSOVER_REGISTRY = {
+    'best_route_xo': best_route_xo,
+    'cycle_xo': cycle_xo,
+    'edge_recomb_xo': edge_recomb_xo,
+    'order_xo': order_xo,
+    'pmx_xo': pmx_xo,
+}
+
+MUTATION_REGISTRY = {
+    'inversion_mut': inversion_mut,
+    'swap_mut': swap_mut,
+    'gvr_scramble_mut': gvr_scramble_mut,
+    'scramble_mut': scramble_mut,
+    'two_opt_mut': two_opt_mut,
+    'or_opt_mut': or_opt_mut,
+    'displacement_mut': displacement_mut,
+}
