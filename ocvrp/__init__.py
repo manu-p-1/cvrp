@@ -17,4 +17,4 @@ parallel        Multi-start island-model parallelization
 util            Data structures (Building, Individual) and .ocvrp parser
 """
 
-__version__ = "2.0.0"
+__version__ = "3.0.0"

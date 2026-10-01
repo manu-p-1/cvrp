@@ -2,14 +2,9 @@
 https://github.com/manu-p-1/cvrp
 distance.py
 
-Precomputed all-pairs Euclidean distance matrix for O(1) pairwise distance
-lookups. Eliminates repeated square-root computations during fitness
-evaluation and local search, which is the single largest performance
-bottleneck in evolutionary CVRP solvers.
-
-Reference:
-    Toth, P. and Vigo, D. (2002). "The Vehicle Routing Problem."
-    SIAM Monographs on Discrete Mathematics and Applications, Chapter 1.
+All-pairs Euclidean distance matrix. Fitness evaluation and the local search
+operators ask for the same pairwise distances over and over, so they are
+computed once when the problem set is loaded.
 """
 
 import math
@@ -18,8 +13,8 @@ import math
 class DistanceMatrix:
     """All-pairs distance matrix indexed by node ID.
 
-    Distances are rounded to the nearest integer (Euclidean CVRP convention).
-    Storage is a flat 2-D list for cache-friendly O(1) access.
+    Distances are rounded to the nearest integer, which is the convention
+    the benchmark sets in ``data/`` use for their optimal values.
     """
 
     __slots__ = ('_d', '_size')

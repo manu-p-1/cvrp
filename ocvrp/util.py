@@ -132,6 +132,7 @@ class CVRPEncoder(JSONEncoder):
     def default(self, o):
         if isinstance(o, Building):
             return o.__dict__
+        return super().default(o)
 
 
 class Individual(collections.abc.Sequence):
@@ -148,7 +149,7 @@ class Individual(collections.abc.Sequence):
     @property
     def genes(self) -> List[Building]:
         """
-        A getter function to return the capacity of this vehicle
+        A getter function to return the genes of this Individual
         :return: The genes for this Individual
         """
         return self._genes
@@ -166,7 +167,7 @@ class Individual(collections.abc.Sequence):
     def fitness(self) -> Union[float, None]:
         """
         A getter function to return the fitness of this Individual
-        :return: The the fitness of this Individual
+        :return: The fitness of this Individual
         """
         return self._fitness
 
@@ -205,7 +206,7 @@ class Individual(collections.abc.Sequence):
         self._genes[key] = value
 
     def __delitem__(self, key):
-        self.__delattr__(key)
+        del self._genes[key]
 
     def __len__(self):
         return len(self._genes)
@@ -244,7 +245,7 @@ class Vehicle:
     def capacity(self) -> int:
         """
         A getter function to return the capacity of this vehicle
-        :return: The the capacity of this vehicle
+        :return: The capacity of this vehicle
         """
         return self._capacity
 
@@ -302,8 +303,8 @@ class OCVRPParser:
 
         def get_ps_buildings(self):
             """
-            Returns the population for this instance
-            :return: The entire population for this instance as a list of Individual instances
+            Returns the customer nodes of the problem set (everything except the depot)
+            :return: The customers as a list of Building objects
             """
             return self.__parser._values["BUILDINGS"]
 
@@ -345,7 +346,7 @@ class OCVRPParser:
     def parse(self):
         """
         Parses the dataset with the dataset loaded on this instance
-        :return: An OCVRPStrategy object containing getters for problem set headers
+        :return: An object with getters for the problem set headers and nodes
         """
         with open(self._filename, "r") as f:
             lines = f.readlines()
@@ -353,7 +354,7 @@ class OCVRPParser:
         idx = 0
         while idx < len(lines):
             line = lines[idx]
-            if line not in ('\n', '\r\n'):
+            if line.strip():
                 try:
                     ln = line.split(":", 1)
                     ln0 = ln[0].upper()

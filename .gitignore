@@ -239,6 +239,7 @@ orleans.codegen.cs
 #bower_components/
 
 # Local Python environment and temp files
+.venv/
 lib/
 __pycache__/
 *.pyc

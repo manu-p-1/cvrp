@@ -1,7 +1,8 @@
 ﻿<#
 CVRP_TestParallel.ps1
 Parallel test suite for the CVRP solver using PowerShell 7 ThreadJobs.
-Runs a matrix of crossover x mutation x dataset combinations in parallel.
+Runs every crossover/mutation pair on the test set, plus two combinations
+on each of three data sets.
 Validates exit codes and parses fitness from JSON output.
 
 Requires: PowerShell 7+ (for Start-ThreadJob)
@@ -31,10 +32,14 @@ $crossovers = @(
 $mutations = @(
     @{ Flag = "-I"; Name = "inversion_mut" },
     @{ Flag = "-W"; Name = "swap_mut" },
+    @{ Flag = "-G"; Name = "gvr_scramble_mut" },
     @{ Flag = "-K"; Name = "scramble_mut" },
     @{ Flag = "-T"; Name = "two_opt_mut" },
     @{ Flag = "-F"; Name = "or_opt_mut" },
-    @{ Flag = "-D"; Name = "displacement_mut" }
+    @{ Flag = "-D"; Name = "displacement_mut" },
+    @{ Flag = "-L"; Name = "relocate_mut" },
+    @{ Flag = "-Z"; Name = "exchange_mut" },
+    @{ Flag = "-Y"; Name = "two_opt_star_mut" }
 )
 
 $datasets = @(
@@ -123,4 +128,5 @@ if ($failures.Count -gt 0) {
 }
 Write-Host "Time: $([math]::Round($sw.Elapsed.TotalSeconds, 1))s`n"
 
+exit $failed
 exit $failed

@@ -7,6 +7,7 @@ This module contains the class to run the CVRP problem optimization
 
 import enum
 import math
+import os
 import random as r
 import time
 from typing import Dict, Tuple, List, Union
@@ -57,8 +58,9 @@ class CVRP:
         :param mt_algo: The mutation algorithm - a function reference
         :param pgen: A bool to flag whether to print the current generation
         :param agen: A bool to flag whether to print generation statistics
-        :param plot: A bool to flag whether to plot the information to a results folder
-        :param plot_save_path: The file path to save the plot image to (enables plotting). Overrides plot if set.
+        :param plot: A bool to flag whether to draw the summary figure. It is only written to disk when
+            plot_save_path is set
+        :param plot_save_path: The file path to save the plot image to. Setting this turns plot on.
         :param verbose_routes: A bool to flag whether to save the exact route information to the results
         :param seed_pct: Fraction of population to seed with constructive heuristics (0.0-1.0)
         """
@@ -173,7 +175,7 @@ class CVRP:
 
     def replacement_strat(self, individual: Individual, rs: ReplStrat) -> None:
         """
-        Restricted tournament replacement: selects a random tournament from the
+        Tournament replacement: selects a random tournament from the
         population and replaces the worst member only if the new individual is
         at least as good.
 
@@ -241,7 +243,7 @@ class CVRP:
         Resets this instance by reassigning this population to a random permutation of values.
         When ``seed_pct`` > 0, a fraction of the initial population is seeded with
         solutions from constructive heuristics (nearest-neighbor, Clarke-Wright
-        savings, sweep) and their mutated variants, which accelerates convergence.
+        savings, sweep) and inversion-mutated copies of them.
 
         :return: None
         """
@@ -263,14 +265,11 @@ class CVRP:
             for h_func in heuristics:
                 if len(self._pop) >= n_seeded:
                     break
-                try:
-                    routes = h_func(self._depot, self._problem_set_buildings_orig,
-                                    self._vehicle_cap, self._dist_matrix)
-                    ind = routes_to_individual(routes)
-                    ind.fitness = self.calc_fitness(ind)
-                    self._pop.append(ind)
-                except Exception:
-                    pass
+                routes = h_func(self._depot, self._problem_set_buildings_orig,
+                                self._vehicle_cap, self._dist_matrix)
+                ind = routes_to_individual(routes)
+                ind.fitness = self.calc_fitness(ind)
+                self._pop.append(ind)
 
             # Fill remaining seeded slots with mutated variants of heuristic solutions
             base_pool = list(self._pop)
@@ -298,7 +297,7 @@ class CVRP:
         5.) Survivor Replacement
         6.) Diversity Maintenance
 
-        :return: A potential solution if found or the closest optimal solution otherwise.
+        :return: A summary dict for the optimal individual if one was found, otherwise the best one seen
         """
 
         print(f"Running {self._ngen} generation(s)...")
@@ -330,7 +329,6 @@ class CVRP:
             parent1, parent2 = self.select()
 
             if cx_prob:
-                # All crossover functions now return (child1, child2) tuples
                 child1, child2 = self._cx_func(parent1, parent2, self)
             else:
                 # Clone parents to avoid in-place mutation corruption
@@ -355,7 +353,7 @@ class CVRP:
             if child2.fitness < best_ever.fitness:
                 best_ever = Individual(child2[:], child2.fitness)
 
-            # One of the children were found to have an optimal fitness
+            # One of the children has the optimal fitness
             if child1.fitness == self._optimal_fitness or child2.fitness == self._optimal_fitness:
                 indiv = child1 if child1.fitness == self._optimal_fitness else child2
                 found = True
@@ -441,12 +439,12 @@ class CVRP:
         end = time.process_time() - t
 
         return self._create_solution(indiv if found else closest, end,
-                                        best_data, avg_data, worst_data, diversity_data, gen_data,
-                                        plot_save_path=self._plot_save_path)
+                                     best_data, avg_data, worst_data, diversity_data, gen_data,
+                                     plot_save_path=self._plot_save_path)
 
     def _create_solution(self, individual, comp_time, best_data, avg_data,
-                          worst_data, diversity_data, gen_data,
-                          plot_save_path: str = None) -> dict:
+                         worst_data, diversity_data, gen_data,
+                         plot_save_path: str = None) -> dict:
         """
         Creates a dictionary with all of the information about the solution or closest solution
         that was found in the EA.
@@ -474,11 +472,11 @@ class CVRP:
                      f"cx={self._cxpb}  mut={self._mutpb}")
             fig.suptitle(title, fontsize=12, fontweight='bold', y=0.98)
 
-            # ── Panel 1: Convergence curve ──
+            # Panel 1: convergence curve
             ax1 = fig.add_subplot(gs[0, 0])
             ax1.plot(gen_data, best_data, linewidth=1.5, color='#2196F3', label='Best')
             ax1.plot(gen_data, avg_data, linewidth=1.2, color='#FF9800', alpha=0.8, label='Average')
-            ax1.fill_between(gen_data, best_data, worst_data, alpha=0.10, color='#9E9E9E', label='Best–Worst range')
+            ax1.fill_between(gen_data, best_data, worst_data, alpha=0.10, color='#9E9E9E', label='Best-worst range')
             if self._optimal_fitness and self._optimal_fitness > 0:
                 ax1.axhline(y=self._optimal_fitness, color='#4CAF50', linestyle='--',
                             linewidth=1, label=f'Optimal ({self._optimal_fitness})')
@@ -488,7 +486,7 @@ class CVRP:
             ax1.legend(fontsize=8, loc='upper right')
             ax1.grid(True, alpha=0.3)
 
-            # ── Panel 2: Population diversity ──
+            # Panel 2: population diversity
             ax2 = fig.add_subplot(gs[0, 1])
             ax2.plot(gen_data, [d * 100 for d in diversity_data],
                      linewidth=1.5, color='#9C27B0')
@@ -501,7 +499,7 @@ class CVRP:
             ax2.legend(fontsize=8)
             ax2.grid(True, alpha=0.3)
 
-            # ── Panel 3: Best solution route map ──
+            # Panel 3: routes of the best solution
             ax3 = fig.add_subplot(gs[1, 0])
             partitioned_viz = self.partition_routes(individual)
             route_colors = plt.cm.Set2(range(len(partitioned_viz)))
@@ -524,7 +522,7 @@ class CVRP:
             ax3.grid(True, alpha=0.2)
             ax3.set_aspect('equal', adjustable='datalim')
 
-            # ── Panel 4: Final population fitness distribution ──
+            # Panel 4: fitness distribution of the final population
             ax4 = fig.add_subplot(gs[1, 1])
             pop_fitness = [ind.fitness for ind in self._pop]
             ax4.hist(pop_fitness, bins=min(50, max(10, len(set(pop_fitness)))),
@@ -565,8 +563,9 @@ class CVRP:
 
         if self._plot and fig is not None:
             if plot_save_path:
-                import os
-                os.makedirs(os.path.dirname(plot_save_path) if os.path.dirname(plot_save_path) else '.', exist_ok=True)
+                plot_dir = os.path.dirname(plot_save_path)
+                if plot_dir:
+                    os.makedirs(plot_dir, exist_ok=True)
                 fig.savefig(plot_save_path, bbox_inches='tight')
                 obj["plot_save_path"] = plot_save_path
             plt.close(fig)
@@ -643,8 +642,7 @@ class CVRP:
     @population_size.setter
     def population_size(self, population_size: int) -> None:
         """
-        Sets the population size for this instance. The population size must be greater
-        than 5.
+        Sets the population size for this instance. The population size must be at least 5.
         :param population_size: The specified population size
         :return: None
         """
@@ -662,11 +660,11 @@ class CVRP:
     @selection_size.setter
     def selection_size(self, selection_size: int) -> None:
         """
-        Sets the selection size for this instance
+        Sets the selection size for this instance. Two parents are drawn from each sample, so it must be at least 2.
         :param selection_size: The selection size for this instance
         :return: None
         """
-        self._is_int_ge(selection_size, 1)
+        self._is_int_ge(selection_size, 2)
         self._selection_size = selection_size
 
     @property
@@ -891,15 +889,19 @@ class CVRP:
         self._is_probability(seed_pct)
         self._seed_pct = seed_pct
 
-
     def run_parallel(self, n_islands=None):
-        """Run a multi-start parallel GA using independent island processes.
+        """Run several independent copies of this GA in separate processes.
 
-        Each island receives the same operator configuration but a different
-        random seed.  The best result across all islands is returned.
+        Each island uses this instance's settings with its own random seed and
+        an equal share of the population. Progress printing and plotting are
+        turned off inside the islands. The best island's result is returned.
+
+        Scripts that call this must guard their entry point with
+        ``if __name__ == "__main__":`` because worker processes re-import the
+        main module on macOS and Windows.
 
         :param n_islands: Number of islands (defaults to CPU count, max 8)
-        :return: A result dict (same schema as ``run()``)
+        :return: A result dict (same schema as ``run()``, plus ``n_islands`` and ``island_pop``)
         """
         from ocvrp.parallel import IslandModel
         model = IslandModel(
@@ -913,5 +915,6 @@ class CVRP:
             mutpb=self._mutpb,
             cxpb=self._cxpb,
             seed_pct=self._seed_pct,
+            verbose_routes=self._verbose_routes,
         )
         return model.run()

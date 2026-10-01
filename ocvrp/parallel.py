@@ -2,9 +2,10 @@
 https://github.com/manu-p-1/cvrp
 parallel.py
 
-Parallelization utilities for CVRP optimization. Provides a multi-start
-island model that runs independent GA instances across CPU cores, and
-helpers for parallel population initialization.
+Runs several independent copies of the GA (islands) in separate processes
+and keeps the best result. Islands never exchange individuals, so this is a
+multi-start GA spread across CPU cores rather than a migration-based island
+model.
 
 Reference:
     Alba, E. and Tomassini, M. (2002). "Parallelism and evolutionary
@@ -20,72 +21,41 @@ import random as r
 from concurrent.futures import ProcessPoolExecutor
 
 
-def _get_algo_by_name(algo_name):
-    """Resolve an algorithm function by its ``__name__`` string.
-
-    Searches both ``ocvrp.algorithms`` and ``ocvrp.local_search``.
-    """
-    from ocvrp import algorithms as alg
-    from ocvrp import local_search as ls
-
-    for mod in (alg, ls):
-        obj = getattr(mod, algo_name, None)
-        if obj is not None and callable(obj):
-            return obj
-
-    raise ValueError(f"Unknown algorithm: {algo_name}")
-
-
-def _island_worker(problem_set_path, pop_size, ngen, seed,
-                   cx_algo_name, mt_algo_name,
-                   selection_size, mutpb, cxpb, seed_pct):
-    """Execute one island's GA.  Must be at module level for pickling."""
+def _island_worker(problem_set_path, pop_size, ngen, seed, cvrp_kwargs):
+    """Run one island. Defined at module level so it can be pickled."""
     r.seed(seed)
 
-    cx_fn = _get_algo_by_name(cx_algo_name)
-    mt_fn = _get_algo_by_name(mt_algo_name)
-
     from ocvrp.cvrp import CVRP
-    cvrp = CVRP(
-        problem_set_path,
-        population_size=pop_size,
-        ngen=ngen,
-        selection_size=selection_size,
-        mutpb=mutpb,
-        cxpb=cxpb,
-        cx_algo=cx_fn,
-        mt_algo=mt_fn,
-        seed_pct=seed_pct,
-        pgen=False,
-        agen=False,
-        plot=False,
-    )
+    # Output and plots from several processes would collide, so islands run quietly.
+    kwargs = dict(cvrp_kwargs, pgen=False, agen=False, plot=False, plot_save_path=None)
+    cvrp = CVRP(problem_set_path, population_size=pop_size, ngen=ngen, **kwargs)
     return cvrp.run()
 
 
 class IslandModel:
-    """Multi-start parallel genetic algorithm for CVRP.
+    """Run several independent copies of the GA in parallel and keep the best.
 
-    Launches *n* independent GA instances (islands) in separate OS processes,
-    each with its own random seed and sub-population. The overall best
-    solution found across all islands is returned.
-
-    This is the simplest yet highly effective form of parallel evolutionary
-    search: independent runs with diverse initializations naturally explore
-    different regions of the solution space.
+    Each island is a separate process with its own random seed and an equal
+    share of ``total_pop`` (at least 50 individuals per island).
 
     Usage::
 
         from ocvrp.parallel import IslandModel
-        model = IslandModel("data/A-n54-k7.ocvrp", n_islands=4, ngen=50000)
-        result = model.run()
+
+        if __name__ == "__main__":
+            model = IslandModel("data/A-n54-k7.ocvrp", n_islands=4, ngen=50000)
+            result = model.run()
+
+    The ``__main__`` guard is required on macOS and Windows, where worker
+    processes re-import the main module.
 
     :param problem_set_path: Path to the ``.ocvrp`` problem file
-    :param n_islands: Number of parallel islands (defaults to CPU count, max 8)
-    :param total_pop: Total population distributed across islands
+    :param n_islands: Number of islands (defaults to CPU count, max 8)
+    :param total_pop: Total population, split evenly across islands
     :param ngen: Generations per island
-    :param cvrp_kwargs: Additional keyword arguments forwarded to each
-        :class:`~ocvrp.cvrp.CVRP` instance (e.g. ``cx_algo``, ``mutpb``)
+    :param cvrp_kwargs: Other keyword arguments passed to each
+        :class:`~ocvrp.cvrp.CVRP` (e.g. ``cx_algo``, ``mutpb``). Operator
+        functions have to be defined at module level so they can be pickled.
     """
 
     def __init__(self, problem_set_path, n_islands=None, total_pop=800,
@@ -97,20 +67,9 @@ class IslandModel:
         self._cvrp_kwargs = cvrp_kwargs
 
     def run(self):
-        """Execute the island model and return the best result dict."""
+        """Run every island and return the result dict of the best one."""
         island_pop = max(50, self._total_pop // self._n_islands)
         seeds = [r.randint(0, 2 ** 31) for _ in range(self._n_islands)]
-
-        # Resolve algorithm callables to their names for pickling
-        cx = self._cvrp_kwargs.get('cx_algo')
-        cx_name = cx.__name__ if callable(cx) else (cx or 'best_route_xo')
-        mt = self._cvrp_kwargs.get('mt_algo')
-        mt_name = mt.__name__ if callable(mt) else (mt or 'inversion_mut')
-
-        sel_size = self._cvrp_kwargs.get('selection_size', 5)
-        mutpb = self._cvrp_kwargs.get('mutpb', 0.15)
-        cxpb = self._cvrp_kwargs.get('cxpb', 0.85)
-        seed_pct = self._cvrp_kwargs.get('seed_pct', 0.0)
 
         n = self._n_islands
         print(f"Launching {n} island(s) "
@@ -125,12 +84,7 @@ class IslandModel:
                     island_pop,
                     self._ngen,
                     seeds[i],
-                    cx_name,
-                    mt_name,
-                    sel_size,
-                    mutpb,
-                    cxpb,
-                    seed_pct,
+                    self._cvrp_kwargs,
                 )
                 futures.append((i, fut))
 

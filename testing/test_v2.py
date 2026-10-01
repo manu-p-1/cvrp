@@ -1,4 +1,4 @@
-"""Quick smoke tests for v2.0 features."""
+"""Smoke tests for the 2.0 features and the 3.0 fixes. Run from the repository root."""
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
@@ -84,10 +84,25 @@ cvrp5 = CVRP("data/A-n54-k7.ocvrp", ngen=100, population_size=30, mt_algo=two_op
 r5 = cvrp5.run()
 check("two_opt_star_mut run completes", r5["best_individual_fitness"] > 0)
 
+print("\n=== 2-opt ===")
+import tempfile
+from ocvrp.algorithms import two_opt_mut
+from ocvrp.util import Individual
+
+# Customers on a line at x=10, 1, 20. Visiting x=1 first gives 40 instead of 58.
+with tempfile.NamedTemporaryFile("w", suffix=".ocvrp", delete=False) as tf:
+    tf.write("NAME: Line\nDIM: 4\nCAPACITY: 10\nOPTIMAL: 40\nNODES:\n"
+             "1 0 0 0\n2 10 0 1\n3 1 0 1\n4 20 0 1\n")
+line = CVRP(tf.name, population_size=5, ngen=1)
+a, b, c = OCVRPParser(tf.name).parse().get_ps_buildings()
+os.unlink(tf.name)
+check("2-opt reverses a two-customer segment",
+      line.calc_fitness(two_opt_mut(Individual([a, b, c], None), line)) == 40)
+
 print("\n=== Algorithm Registry ===")
 from ocvrp.algorithms import CROSSOVER_REGISTRY, MUTATION_REGISTRY
 check("crossover registry has 5 entries", len(CROSSOVER_REGISTRY) == 5)
-check("mutation registry has 7 entries", len(MUTATION_REGISTRY) == 7)
+check("mutation registry has 10 entries", len(MUTATION_REGISTRY) == 10)
 
 print("\n=== CLI ===")
 import subprocess
@@ -97,6 +112,18 @@ check("--seed-pct in help", "--seed-pct" in r.stdout)
 check("--reloc in help", "--reloc" in r.stdout)
 check("--exch in help", "--exch" in r.stdout)
 check("--toptstar in help", "--toptstar" in r.stdout)
+
+r = subprocess.run([sys.executable, "driver.py", "data/test_set.ocvrp", "-g", "20", "-p", "10",
+                    "-m", "0", "-c", "0"], capture_output=True, text=True)
+check("-m 0 and -c 0 are honored", '"mutpb": 0.0' in r.stdout and '"cxpb": 0.0' in r.stdout)
+
+r = subprocess.run([sys.executable, "driver.py", "data/test_set.ocvrp", "-s", "1"],
+                   capture_output=True, text=True)
+check("-s 1 is rejected", r.returncode == 2)
+
+r = subprocess.run([sys.executable, "driver.py", "data/test_set.ocvrp", "-g", "20", "-p", "100",
+                    "--islands", "2", "-R"], capture_output=True, text=True)
+check("--islands keeps -R routes", r.returncode == 0 and '"best_individual"' in r.stdout)
 
 print(f"\n{passed} passed, {failed} failed")
 sys.exit(failed)

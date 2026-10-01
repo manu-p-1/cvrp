@@ -1,5 +1,9 @@
-"""Quick edge-case tests for OCVRPParser refactor."""
-import sys, os, tempfile
+"""Edge-case tests for OCVRPParser. Run from the repository root."""
+import glob
+import os
+import sys
+import tempfile
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from ocvrp.util import OCVRPParser
 
@@ -84,8 +88,17 @@ except SyntaxError as e:
 finally:
     os.unlink(tmp)
 
-# --- Test 8: All real datasets parse ---
-import glob
+# --- Test 8: Whitespace-only line between headers ---
+tmp = write_tmp("NAME: TestSpaces\n   \nDIM: 3\nCAPACITY: 100\nOPTIMAL: 500\n\t\nNODES:\n1 0 0 0\n2 10 20 5\n3 30 40 10\n")
+try:
+    ps = OCVRPParser(tmp).parse()
+    check("whitespace-only lines", ps.get_ps_capacity() == 100)
+except SyntaxError:
+    check("whitespace-only lines", False)
+finally:
+    os.unlink(tmp)
+
+# --- Test 9: All real datasets parse ---
 real_files = sorted(glob.glob("data/*.ocvrp"))
 for f in real_files:
     ps = OCVRPParser(f).parse()

@@ -2,16 +2,15 @@
 https://github.com/manu-p-1/cvrp
 constructive.py
 
-Classical constructive heuristics for generating feasible initial CVRP
-solutions. These produce complete route plans from scratch and are used
-to seed the genetic algorithm population with high-quality starting points,
-significantly accelerating convergence.
+Classical constructive heuristics that build a complete, capacity-feasible
+set of routes from scratch. CVRP uses them to seed part of the starting
+population when ``seed_pct`` > 0.
 """
 
 import math
 import random
 
-from ocvrp.util import Building, Individual
+from ocvrp.util import Individual
 
 
 def nearest_neighbor(depot, buildings, capacity, dist_matrix):
@@ -31,6 +30,7 @@ def nearest_neighbor(depot, buildings, capacity, dist_matrix):
     :param capacity: Maximum vehicle capacity
     :param dist_matrix: Precomputed DistanceMatrix instance
     :return: List of routes (each route is a list of Building objects)
+    :raises ValueError: If a customer's demand is larger than the vehicle capacity
     """
     unvisited = set(buildings)
     routes = []
@@ -58,8 +58,10 @@ def nearest_neighbor(depot, buildings, capacity, dist_matrix):
             load += best.quant
             current = best
 
-        if route:
-            routes.append(route)
+        if not route:
+            nodes = sorted(b.node for b in unvisited)
+            raise ValueError(f"Demand exceeds the vehicle capacity ({capacity}) for node(s) {nodes}")
+        routes.append(route)
 
     return routes
 

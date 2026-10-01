@@ -9,7 +9,7 @@ verify_ssl = true
 matplotlib = ">=3.8,<4"
 
 [scripts]
-start = "driver.py"
+start = "python driver.py"
 
 [requires]
 python_version = "3.12"

@@ -2,10 +2,13 @@
 https://github.com/manu-p-1/cvrp
 local_search.py
 
-Inter-route and composite local search operators for CVRP. These operate
-on the partitioned (GVR) route representation and can move customers
-between routes, providing improvements that intra-route operators alone
-cannot achieve.
+Inter-route local search operators for CVRP. They work on the decoded
+routes and move customers from one route to another.
+
+Each operator applies the single best improving move it finds. The result is
+flattened back into a permutation and re-split by capacity when it is
+evaluated, so the final routes can differ slightly from the ones the move
+was scored on, and the improvement is not guaranteed.
 
 All public functions conform to the mutation signature
     fn(child: Individual, cvrp) -> Individual
@@ -99,9 +102,9 @@ def exchange_mut(child, cvrp=None):
     and performs the swap yielding the greatest distance reduction.
 
     Reference:
-        Kindervater, G.A.P. and Savelsbergh, M.W.P. (1997). "Vehicle
-        routing: Handling edge exchanges." In Local Search in Combinatorial
-        Optimization, Aarts, E. and Lenstra, J.K. (eds.), Wiley, pp. 337-360.
+        Savelsbergh, M.W.P. (1992). "The vehicle routing problem with time
+        windows: Minimizing route duration." ORSA Journal on Computing,
+        4(2), 146-154.
 
     :param child: The child Individual object
     :param cvrp: An instance of the CVRP class

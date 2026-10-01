@@ -2,7 +2,7 @@
 https://github.com/manu-p-1/cvrp
 driver.py
 
-This module contains a tester file to run the CVRP problem optimization based on command-line arguments
+Command-line entry point for running the CVRP optimizer
 """
 
 import argparse
@@ -30,34 +30,25 @@ def pos_float(value):
     return value
 
 
-def pos_int(value):
-    try:
-        value = int(value)
-    except ValueError:
-        raise argparse.ArgumentTypeError('Value must be an integer')
+def int_at_least(minimum):
+    def check(value):
+        try:
+            value = int(value)
+        except ValueError:
+            raise argparse.ArgumentTypeError('Value must be an integer')
 
-    if value < 0:
-        raise argparse.ArgumentTypeError('Value must be >= 0')
-    return value
-
-
-def int_ge_one(value):
-    try:
-        value = int(value)
-    except ValueError:
-        raise argparse.ArgumentTypeError('Value must be an integer')
-
-    if value <= 0:
-        raise argparse.ArgumentTypeError('Value must be >= 1')
-    return value
+        if value < minimum:
+            raise argparse.ArgumentTypeError(f'Value must be >= {minimum}')
+        return value
+    return check
 
 
 class ValidOutputFile(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         try:
             Path(values).mkdir(parents=True, exist_ok=True)
-        except IOError as ioe:
-            raise argparse.ArgumentTypeError(str(ioe))
+        except OSError as e:
+            raise argparse.ArgumentError(self, str(e))
         setattr(namespace, self.dest, values)
 
 
@@ -74,12 +65,13 @@ def main():
     parser.add_argument("file", type=str, help="the path to the problem set")
     parser.add_argument("-o", "--output", action=ValidOutputFile, metavar='', type=str,
                         help="the path to output the results (creates the path if it does not exist)")
-    parser.add_argument("-p", "--pop", metavar='', type=pos_int, help="the population size")
-    parser.add_argument("-s", "--sel", metavar='', type=pos_int, help="the selection size")
-    parser.add_argument("-g", "--ngen", metavar='', type=pos_int, help="the generation size")
+    parser.add_argument("-p", "--pop", metavar='', type=int_at_least(5), help="the population size")
+    parser.add_argument("-s", "--sel", metavar='', type=int_at_least(2), help="the selection size")
+    parser.add_argument("-g", "--ngen", metavar='', type=int_at_least(1), help="the number of generations")
     parser.add_argument("-m", "--mutpb", metavar='', type=pos_float, help="the mutation probability")
     parser.add_argument("-c", "--cxpb", metavar='', type=pos_float, help="the crossover probability")
-    parser.add_argument("-r", "--run", metavar='', type=int_ge_one, help="the number of times to run the problem")
+    parser.add_argument("-r", "--run", metavar='', type=int_at_least(1),
+                        help="the number of times to run the problem")
 
     cx_types = parser.add_mutually_exclusive_group()
     cx_types.add_argument("-B", "--brxo", action='store_true', help="use best route crossover")
@@ -103,21 +95,25 @@ def main():
     mt_types.add_argument("-Y", "--toptstar", action='store_true',
                           help="use 2-opt* inter-route tail exchange mutation")
 
-    parser.add_argument("-i", "--indent", metavar='', nargs="?", type=int_ge_one, const=2,
+    parser.add_argument("-i", "--indent", metavar='', nargs="?", type=int_at_least(1), const=2,
                         help="the indentation amount of the result string")
     parser.add_argument("-P", "--pgen", action='store_true', help="prints the current generation")
-    parser.add_argument("-A", "--agen", action='store_true', help="prints the average fitness every 250 generations")
+    parser.add_argument("-A", "--agen", action='store_true', help="prints population statistics every 250 generations")
 
     parser.add_argument("-S", "--save", action="store_true", help="saves the results to a file")
     parser.add_argument("-R", "--routes", action="store_true", help="adds every route (verbose) of the best "
                                                                     "individual to the result")
-    parser.add_argument("-M", "--plot", action="store_true", help="plot average fitness across generations with "
-                                                                  "matplotlib")
-    parser.add_argument("--islands", metavar='', type=int_ge_one,
-                        help="number of parallel islands (multi-start GA)")
+    parser.add_argument("-M", "--plot", action="store_true", help="saves a summary plot of each run (needs "
+                                                                  "matplotlib)")
+    parser.add_argument("--islands", metavar='', type=int_at_least(1),
+                        help="number of independent GA runs to execute in parallel (the population is split "
+                             "between them)")
     parser.add_argument("--seed-pct", metavar='', type=pos_float, default=0.0,
                         help="fraction of population seeded with constructive heuristics (0.0-1.0)")
     args = parser.parse_args()
+
+    if args.islands and args.plot:
+        parser.error("-M/--plot can't be combined with --islands")
 
     p_set = args.file
 
@@ -128,11 +124,11 @@ def main():
     else:
         output = args.output
 
-    pop = args.pop if args.pop else pop
-    sel = args.sel if args.sel else sel
-    ngen = args.ngen if args.ngen else ngen
-    mutpb = args.mutpb if args.mutpb else mutpb
-    cxpb = args.cxpb if args.cxpb else cxpb
+    pop = args.pop if args.pop is not None else pop
+    sel = args.sel if args.sel is not None else sel
+    ngen = args.ngen if args.ngen is not None else ngen
+    mutpb = args.mutpb if args.mutpb is not None else mutpb
+    cxpb = args.cxpb if args.cxpb is not None else cxpb
 
     runtime = args.run if args.run else 1
     if args.cxo:

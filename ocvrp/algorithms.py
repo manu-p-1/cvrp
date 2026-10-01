@@ -6,8 +6,9 @@ This module contains a list of functions to perform crossover and mutation opera
 """
 import math
 import random as r
-from typing import Dict, Tuple, List
+from typing import Tuple
 
+from ocvrp import local_search
 from ocvrp.util import Building, Individual
 
 
@@ -58,12 +59,15 @@ def _best_route_xo_single(ind1: Individual, ind2: Individual, cvrp) -> Individua
 
 def best_route_xo(ind1: Individual, ind2: Individual, cvrp) -> Tuple[Individual, Individual]:
     """
-    Given two individuals, does best route crossover proposed by Costa et al.
+    Given two individuals, does the geographic GVR crossover: a sub-route from one parent is inserted after the
+    customer closest to its first node in the other parent. "Best route crossover" is this project's name for it.
 
-    Reference:
-    Costa, E., Machado, P., Pereira, B., Tavares, J.,
-    "Crossover and Diversity: A Study about GVR", In Proceedings of the Analysis and Design of Representations and
-    Operators (ADorO'2003) a bird-of-a-feather workshop at (GECCO-2003), Chicago, Illinois, USA, 12-16 July 2003
+    References:
+    Pereira, F.B., Tavares, J., Machado, P., Costa, E. (2002). "GVR: A new genetic representation for the vehicle
+    routing problem." In Artificial Intelligence and Cognitive Science (AICS 2002), LNCS 2464, Springer, pp. 95-102.
+
+    Tavares, J., Pereira, F.B., Machado, P., Costa, E. (2003). "Crossover and diversity: A study about GVR." In
+    GECCO 2003: Proceedings of the Bird of a Feather Workshops (ADoRo workshop), Chicago, pp. 27-33.
 
     :param ind1: The first Individual
     :param ind2: The second Individual
@@ -153,8 +157,8 @@ def cycle_xo(ind1: Individual, ind2: Individual, cvrp) -> Tuple[Individual, Indi
     Given two individuals, does an optimized version of cycle crossover proposed by Nazif and Lee.
 
     Reference:
-    Habibeh Nazif and Lai Soon Lee, "Optimised crossover genetic algorithm for capacitated vehicle routing problem",
-    Applied Mathematical Modeling 36, 2011.
+    Nazif, H. and Lee, L.S. (2012). "Optimised crossover genetic algorithm for capacitated vehicle routing problem."
+    Applied Mathematical Modelling, 36(5), 2110-2117.
 
     We decide to modify the proposed crossover by finding as many combinations of cycles within a specified runtime,
     instead of 2^c (proposed by authors) or 2^5 (recommendation by authors) combinations. The runtime is
@@ -250,7 +254,7 @@ def _edge_recomb_xo_single(ind1: Individual, ind2: Individual) -> Individual:
             ind2_adjacent[bldg2] = [ind2[i + 1], ind2[ind_len - 1]]
         elif i == ind_len - 1:
             ind1_adjacent[bldg1] = [ind1[i - 1], ind1[0]]
-            ind2_adjacent[bldg2] = [ind2[i - 1], ind2[0]]  # Fixed: was ind1[0]
+            ind2_adjacent[bldg2] = [ind2[i - 1], ind2[0]]
         else:
             ind1_adjacent[bldg1] = [ind1[i - 1], ind1[i + 1]]
             ind2_adjacent[bldg2] = [ind2[i - 1], ind2[i + 1]]
@@ -285,8 +289,8 @@ def edge_recomb_xo(ind1: Individual, ind2: Individual, cvrp=None) -> Tuple[Indiv
     Given two individuals, does an edge recombination proposed by Whitley et al.
 
     Reference:
-    Whitley, Darrell; Timothy Starkweather; D'Ann Fuquay (1989). "Scheduling problems and traveling salesman:
-    The genetic edge recombination operator". International Conference on Genetic Algorithms. pp. 133-140
+    Whitley, D., Starkweather, T., Fuquay, D. (1989). "Scheduling problems and traveling salesmen: The genetic edge
+    recombination operator." Proc. 3rd International Conference on Genetic Algorithms, pp. 133-140.
 
     :param ind1: The first Individual
     :param ind2: The second Individual
@@ -417,8 +421,9 @@ def pmx_xo(ind1: Individual, ind2: Individual, cvrp=None) -> Tuple[Individual, I
     Partially Mapped Crossover (PMX) by Goldberg and Lingle.
 
     Reference:
-    Goldberg, D.E. and Lingle, R. (1985). Proceedings of the International
-    Conference on Genetic Algorithms, pp. 154-159.
+    Goldberg, D.E. and Lingle, R., Jr. (1985). "Alleles, loci, and the traveling
+    salesman problem." Proc. 1st International Conference on Genetic
+    Algorithms, pp. 154-159.
 
     Two crossover points are selected. The segment between them is copied from
     the respective parent. Remaining positions are filled via a mapping from the
@@ -501,14 +506,14 @@ def two_opt_mut(child: Individual, cvrp=None) -> Individual:
     for route_num in partitioned:
         route = partitioned[route_num]
         n = len(route)
-        if n < 4:
+        if n < 3:
             continue
 
         improved = True
         while improved:
             improved = False
             for i in range(n - 1):
-                for j in range(i + 2, n):
+                for j in range(i + 1, n):
                     # O(1) delta evaluation: compare removed vs added edges
                     before_i = depot if i == 0 else route[i - 1]
                     after_j = depot if j == n - 1 else route[j + 1]
@@ -558,7 +563,7 @@ def displacement_mut(child: Individual, cvrp=None) -> Individual:
     """
     Removes a random subsequence and reinserts it at a random position.
 
-    Reference: Michalewicz, Z. (1996). Springer-Verlag, 3rd edition.
+    Reference: Michalewicz, Z. (1992). Genetic Algorithms + Data Structures = Evolution Programs. Springer-Verlag.
 
     :param child: The child Individual object
     :param cvrp: An instance of the CVRP class (unused)
@@ -608,4 +613,7 @@ MUTATION_REGISTRY = {
     'two_opt_mut': two_opt_mut,
     'or_opt_mut': or_opt_mut,
     'displacement_mut': displacement_mut,
+    'relocate_mut': local_search.relocate_mut,
+    'exchange_mut': local_search.exchange_mut,
+    'two_opt_star_mut': local_search.two_opt_star_mut,
 }
